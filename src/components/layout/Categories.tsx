@@ -1,0 +1,67 @@
+"use client";
+
+import Link from "next/link";
+import { ArrowRightIcon } from "../ui/Icons";
+
+const categories = [
+  {
+    id: 1,
+    title: "Стільці",
+    image: "https://picsum.photos/id/230/800/600",
+    link: "/catalog?type=Chair",
+    colSpan: "md:col-span-1",
+  },
+  {
+    id: 2,
+    title: "Столи",
+    image: "https://picsum.photos/id/231/800/600",
+    link: "/catalog?type=Table",
+    colSpan: "md:col-span-1",
+  },
+  {
+    id: 3,
+    title: "Лампи",
+    image: "https://picsum.photos/id/232/1600/600",
+    link: "/catalog?type=Nightstand",
+    colSpan: "md:col-span-2", // Stretches across both columns on desktop
+  },
+];
+
+export default function Categories() {
+  return (
+    <section className="w-full bg-opora-menu py-4">
+      {/* 
+        Mobile: 1 column grid (stacks vertically)
+        Desktop: 2 column grid
+      */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-1 px-4 md:px-8">
+        {categories.map((category) => (
+          <Link
+            key={category.id}
+            href={category.link}
+            className={`group relative w-full h-[350px] md:h-[400px] overflow-hidden bg-opora-beige block ${category.colSpan}`}
+          >
+            {/* Background Image */}
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+              style={{ backgroundImage: `url(${category.image})` }}
+            />
+            
+            {/* Gradient Overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/10" />
+
+            {/* Category Title */}
+            <h3 className="absolute top-6 left-6 text-2xl md:text-3xl text-white font-medium tracking-wide">
+              {category.title}
+            </h3>
+
+            {/* Arrow Button */}
+            <div className="absolute bottom-6 right-6 w-12 h-12 bg-white rounded-full flex items-center justify-center text-opora-brown shadow-md group-hover:bg-opora-brown group-hover:text-white transition-colors duration-300">
+              <ArrowRightIcon className="w-6 h-6" />
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}

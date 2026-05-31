@@ -1,0 +1,23 @@
+// src/app/api/comments/route.ts
+import { getComments } from "@/lib";
+import { NextResponse } from "next/server";
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const productName = searchParams.get("productName");
+
+    const comments = await getComments(productName);
+
+    console.log('comments =>', comments);
+
+    return NextResponse.json(comments, { status: 200 });
+  } catch (error) {
+    console.error("Failed to fetch comments from Airtable:", error);
+    
+    return NextResponse.json(
+      { error: "Internal Server Error while fetching comments" },
+      { status: 500 }
+    );
+  }
+}
