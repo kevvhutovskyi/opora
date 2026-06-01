@@ -465,7 +465,7 @@ export default function ProductPage() {
                       const filename = `Інструкція_збірки_${product.model.replace(/\s+/g, '_')}`;
                       handleDownloadPDF(pdfUrl, filename);
                     }}
-                    className="border border-opora-brown py-2 px-6 font-medium text-sm hover:bg-opora-brown hover:text-white transition-colors"
+                    className="border rounded-2xl border-opora-brown py-2 px-6 font-medium text-sm hover:bg-opora-brown hover:text-white transition-colors"
                   >
                     Завантажити PDF
                   </button>

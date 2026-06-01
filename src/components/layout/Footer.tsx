@@ -157,7 +157,7 @@ export default function Footer() {
             <p className="font-medium mb-5 text-sm">Щодня з 10:00 до 20:00</p>
             
             {/* Map Placeholder */}
-            <div className="w-full max-w-[280px] aspect-[2/1] bg-white/10 rounded-sm overflow-hidden border border-white/20">
+            <div className="w-full max-w-[650px] aspect-[2/1] bg-white/10 rounded-sm overflow-hidden border border-white/20">
               <iframe 
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2573.232598375438!2d24.015112576916515!3d49.83810247148003!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x473add7bceb83e6b%3A0xc39f88c3af37d39!2sStepana%20Bandery%20St%2C%2012%2C%20L&#39;viv%2C%20L&#39;vivs&#39;ka%20oblast%2C%20Ukraine%2C%2079000!5e0!3m2!1sen!2sus!4v1716900000000!5m2!1sen!2sus" 
                 width="100%" 
