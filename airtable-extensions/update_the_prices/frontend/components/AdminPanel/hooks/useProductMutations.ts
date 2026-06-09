@@ -1,4 +1,6 @@
 import { useBase } from '@airtable/blocks/ui';
+import { FIELDS, TABLES } from '../constants';
+import { toLinks } from '../utils';
 
 interface ProductFields {
   model: string;
@@ -9,35 +11,32 @@ interface ProductFields {
 export function useProductMutations() {
   const base = useBase();
 
-  // Initialize tables safely
-  const productsTable = base.getTableByNameIfExists('Товари');
-  const popularProductsTable = base.getTableByNameIfExists('Найпопулярніші Товари');
-  const specsTable = base.getTableByNameIfExists('Характеристики');
-  const prodSpecsTable = base.getTableByNameIfExists('Товари/Характеристики');
+  const productsTable = base.getTableByNameIfExists(TABLES.products);
+  const popularProductsTable = base.getTableByNameIfExists(TABLES.popularProducts);
+  const specsTable = base.getTableByNameIfExists(TABLES.specs);
+  const prodSpecsTable = base.getTableByNameIfExists(TABLES.productSpecs);
 
   const saveProduct = async (
     productId: string | null,
     fields: ProductFields
   ): Promise<string> => {
-    if (!productsTable) throw new Error('Таблиця "Товари" не знайдена');
+    if (!productsTable) throw new Error(`Таблиця "${TABLES.products}" не знайдена`);
 
     const airtableFields = {
-      'Модель': fields.model,
-      'Виробник': fields.manufacturer,
-      'Опис': fields.description,
+      [FIELDS.product.model]: fields.model,
+      [FIELDS.product.manufacturer]: fields.manufacturer,
+      [FIELDS.product.description]: fields.description,
     };
 
     if (productId) {
       await productsTable.updateRecordAsync(productId, airtableFields);
       return productId;
-    } else {
-      const newRecordId = await productsTable.createRecordAsync(airtableFields);
-      return newRecordId;
     }
+    return productsTable.createRecordAsync(airtableFields);
   };
 
   const deleteProduct = async (productId: string): Promise<void> => {
-    if (!productsTable) throw new Error('Таблиця "Товари" не знайдена');
+    if (!productsTable) throw new Error(`Таблиця "${TABLES.products}" не знайдена`);
     await productsTable.deleteRecordAsync(productId);
   };
 
@@ -45,13 +44,13 @@ export function useProductMutations() {
     productId: string,
     popularRecordId: string | null
   ): Promise<void> => {
-    if (!popularProductsTable) throw new Error('Таблиця "Найпопулярніші Товари" не знайдена');
+    if (!popularProductsTable) throw new Error(`Таблиця "${TABLES.popularProducts}" не знайдена`);
 
     if (popularRecordId) {
       await popularProductsTable.deleteRecordAsync(popularRecordId);
     } else {
       await popularProductsTable.createRecordAsync({
-        'Товари': [{ id: productId }],
+        [FIELDS.popular.products]: toLinks([productId]),
       });
     }
   };
@@ -67,20 +66,20 @@ export function useProductMutations() {
     let specIdToLink = selectedSpecId;
 
     if (newSpecName) {
-      specIdToLink = await specsTable.createRecordAsync({ 'Значення': newSpecName });
+      specIdToLink = await specsTable.createRecordAsync({ [FIELDS.spec.name]: newSpecName });
     }
 
     if (!specIdToLink) throw new Error('Не вказана характеристика');
 
     await prodSpecsTable.createRecordAsync({
-      'Товар': [{ id: productId }],
-      'Характеристика': [{ id: specIdToLink }],
-      'Значення': specValue,
+      [FIELDS.productSpec.product]: toLinks([productId]),
+      [FIELDS.productSpec.spec]: toLinks([specIdToLink]),
+      [FIELDS.productSpec.value]: specValue,
     });
   };
 
   const removeProductSpec = async (prodSpecId: string): Promise<void> => {
-    if (!prodSpecsTable) throw new Error('Таблиця "Товари/Характеристики" не знайдена');
+    if (!prodSpecsTable) throw new Error(`Таблиця "${TABLES.productSpecs}" не знайдена`);
     await prodSpecsTable.deleteRecordAsync(prodSpecId);
   };
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MenuIcon, CartIcon, OporaLogo } from "../ui/Icons";
 import Drawer from "./Drawer";
 import { useCartStore } from "@/store/cartStore";
-import { ClientRequest } from "@/lib";
+import { ClientRequest, generateRequestNumber } from "@/lib";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,6 +19,7 @@ export default function Header() {
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'form' | 'success'>('cart');
   const [formData, setFormData] = useState({ name: '', phone: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
 
   const cartItems = useCartStore((state) => state.items);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -35,16 +36,19 @@ export default function Header() {
     }, 300); // Reset after drawer transition finishes
   };
 
-  const handleCheckoutSubmit = async (e: React.FormEvent) => {
+  const handleCheckoutSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
   setIsSubmitting(true);
 
+  // Генеруємо номер замовлення на клієнті й передаємо на бекенд
+  const newOrderNumber = generateRequestNumber();
+
   try {
-    // 1. Формуємо payload, який СУВОРО відповідає вашому ClientRequest
     const payload: ClientRequest = {
       name: formData.name,
       phoneNumber: formData.phone,
       // email: formData.email, // Розкоментуйте, якщо додасте поле email у форму
+      orderNumber: newOrderNumber,
       orders: [
         ...cartItems,
       ]
@@ -57,10 +61,11 @@ export default function Header() {
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
+    const data = await response.json() as { success?: boolean; error?: string };
 
     // 3. Обробляємо результат
     if (response.ok && data.success) {
+      setOrderNumber(newOrderNumber);
       setCheckoutStep('success');
       clearCart();
     } else {
@@ -183,12 +188,6 @@ export default function Header() {
           {/* Футер всередині меню */}
           <div className="text-center text-sm text-opora-brown/80 mt-10">
             <p className="mb-2">© 2026 OPORA. Всі права захищені.</p>
-            <Link 
-              href="#" 
-              className="hover:opacity-100 transition-opacity underline decoration-1 underline-offset-4"
-            >
-              Політика конфіденційності.
-            </Link>
           </div>
         </div>
       </Drawer>
@@ -211,7 +210,17 @@ export default function Header() {
                       <div className="w-20 h-20 bg-opora-softBeige bg-cover bg-center rounded-sm flex-shrink-0" style={{ backgroundImage: `url(${item.image})` }}/>
                       <div className="flex-1">
                         <h4 className="font-medium uppercase leading-tight mb-1">{item.title}</h4>
-                        {item.variation && <p className="text-xs font-light opacity-60 mb-1">{item.variation}</p>}
+                        <div className="flex items-center gap-2 mb-1">
+                          {item.options.map((opt, i) => (
+                            <span
+                              key={i}
+                              className="w-3 h-3 rounded-full border border-black/10 inline-block shrink-0"
+                              style={{ backgroundColor: opt.value }}
+                              title={opt.name}
+                            />
+                          ))}
+                          <p className="text-xs font-light opacity-60">Art: {item.sku}</p>
+                        </div>
                         <div className="flex items-center gap-4 mt-2">
                           <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="hover:opacity-70 text-lg leading-none">-</button>
                           <span className="text-sm font-light">{item.quantity}</span>
@@ -220,7 +229,7 @@ export default function Header() {
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <button onClick={() => removeItem(item.id)} className="p-1 hover:opacity-70 transition-opacity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                        <p className="text-sm font-medium whitespace-nowrap">{item.price.toLocaleString('uk-UA')} ₴</p>
+                        <p className="text-sm font-medium whitespace-nowrap">{(item.price * item.quantity).toLocaleString('uk-UA')} ₴</p>
                       </div>
                     </div>
                   ))
@@ -295,10 +304,15 @@ export default function Header() {
           {checkoutStep === 'success' && (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <h3 className="font-bold text-2xl mb-4">Дякуємо за замовлення!</h3>
+              {orderNumber && (
+                <p className="text-sm font-medium mb-3 px-4 py-1.5 rounded-full bg-opora-softBeige">
+                  Замовлення №{orderNumber}
+                </p>
+              )}
               <p className="text-lg font-light mb-8 max-w-[250px]">
                 Наш менеджер зв'яжеться з вами найближчим часом для підтвердження.
               </p>
-              <button 
+              <button
                 onClick={handleCloseCart}
                 className="py-4 px-8 border border-opora-brown hover:bg-opora-brown hover:text-white transition-colors"
               >

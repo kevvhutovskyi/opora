@@ -5,11 +5,10 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const productName = searchParams.get("productName");
+    // Клієнт надсилає ?variation=<модель товару>; лишаємо productName як запасний варіант
+    const productName = searchParams.get("variation") || searchParams.get("productName");
 
     const comments = await getComments(productName);
-
-    console.log('comments =>', comments);
 
     return NextResponse.json(comments, { status: 200 });
   } catch (error) {

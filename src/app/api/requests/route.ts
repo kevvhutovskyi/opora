@@ -1,4 +1,4 @@
-import { ClientRequest, tableRequests } from "@/lib";
+import { ClientRequest, tableRequests, FIELDS } from "@/lib";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -15,22 +15,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 1. Номер замовлення приходить з клієнта; якщо ні — генеруємо тут як запасний варіант
+    const orderNumber = body.orderNumber || Math.floor(100000 + Math.random() * 900000).toString();
+
     // Збираємо ID товарів для Airtable на основі нової структури
     let linkedProductIds: string[] = [];
     if (orders && Array.isArray(orders)) {
-      // Зі скріншоту видно, що у вас є productId (ID самого товару) та id (можливо, ID варіації). 
-      // Беремо productId, а якщо його немає - беремо id.
       const allProductIds = orders.map(item => item.id || item.id);
       linkedProductIds = Array.from(new Set(allProductIds)); 
     }
 
-    // Створюємо запис в Airtable
+    // 2. Створюємо запис в Airtable, додаючи "Номер замовлення"
     const newRecord = await tableRequests.create([
       {
         fields: {
-          "Ім'я": name,
-          "Номер телефону": phoneNumber || '',
-          ...(linkedProductIds.length > 0 && { "Замовлення": linkedProductIds })
+          [FIELDS.request.name]: name,
+          [FIELDS.request.phoneNumber]: phoneNumber || '',
+          [FIELDS.request.orderNumber]: orderNumber,
+          ...(linkedProductIds.length > 0 && { [FIELDS.request.orders]: linkedProductIds })
         }
       }
     ]);
@@ -39,36 +41,42 @@ export async function POST(request: NextRequest) {
     // ГЕНЕРАЦІЯ ТА ВІДПРАВКА ПОВІДОМЛЕННЯ В TELEGRAM
     // =====================================================================
     try {
-      let totalSum = 0;
-      let productsListText = "";
+      let messageText = "";
 
-      // Формуємо красивий список на основі масиву зі скріншоту
-      if (orders && Array.isArray(orders) && orders.length > 0) {
-        productsListText = "\n\n🛍 <b>Деталі замовлення:</b>\n";
+      // ПЕРЕВІРКА: Якщо кошик порожній -> це просто консультація
+      if (!orders || orders.length === 0) {
+        messageText = 
+          `💡 <b>Запит на консультацію!</b>\n` +
+          `🔖 <b>Запит №:</b> ${orderNumber}\n\n` +
+          `👤 <b>Ім'я:</b> ${name}\n` +
+          `📞 <b>Телефон:</b> ${phoneNumber}\n\n`;
+      } 
+      // ІНАКШЕ: Це повноцінне замовлення
+      else {
+        let totalSum = 0;
+        let productsListText = "\n\n🛍 <b>Деталі замовлення:</b>\n";
         
         orders.forEach((item, index) => {
-          // Рахуємо суму для конкретної позиції (ціна * кількість)
           const itemQuantity = item.quantity || 1;
           const itemTotal = item.price * itemQuantity;
           totalSum += itemTotal;
           
-          // Використовуємо назву варіації, якщо вона є (наприклад, 'Modelo Classic Black/Red')
-          const itemName = item.variation ? item.variation : item.title;
+          const optionNames = item.options?.map((o) => o.name).join(' / ') || '';
+          const articleLine = item.sku ? ` [Art: ${item.sku}]` : '';
 
-          // Формат: 
-          // 1. Modelo Classic Black/Red
-          //    3 шт. x 1 115 ₴ = 3 345 ₴
-          productsListText += `${index + 1}. ${itemName}\n   ${itemQuantity} шт. x ${item.price.toLocaleString('uk-UA')} ₴ = <b>${itemTotal.toLocaleString('uk-UA')} ₴</b>\n`;
+          productsListText += `${index + 1}. ${item.title}${articleLine}\n`;
+          if (optionNames) productsListText += `   🎨 ${optionNames}\n`;
+          productsListText += `   ${itemQuantity} шт. x ${item.price.toLocaleString('uk-UA')} ₴ = <b>${itemTotal.toLocaleString('uk-UA')} ₴</b>\n`;
         });
-      }
 
-      // Збираємо фінальний текст
-      const messageText = 
-        `🎉 <b>Нове замовлення!</b>\n\n` +
-        `👤 <b>Ім'я:</b> ${name}\n` +
-        `📞 <b>Телефон:</b> ${phoneNumber}` +
-        productsListText +
-        `\n💰 <b>Загальна сума до сплати:</b> ${totalSum.toLocaleString('uk-UA')} ₴`;
+        messageText = 
+          `🎉 <b>Нове замовлення!</b>\n` +
+          `🔖 <b>Замовлення №:</b> ${orderNumber}\n\n` +
+          `👤 <b>Ім'я:</b> ${name}\n` +
+          `📞 <b>Телефон:</b> ${phoneNumber}` +
+          productsListText +
+          `\n💰 <b>Загальна сума до сплати:</b> ${totalSum.toLocaleString('uk-UA')} ₴`;
+      }
 
       // Відправляємо запит на ваш Telegram-роут
       const baseUrl = request.nextUrl.origin;
@@ -83,12 +91,13 @@ export async function POST(request: NextRequest) {
     }
     // =====================================================================
 
-    // Повертаємо успішну відповідь
+    // Повертаємо успішну відповідь з номером замовлення
     return NextResponse.json({ 
       success: true, 
       data: {
         id: newRecord[0].id,
-        name: newRecord[0].get("Ім'я"),
+        name: newRecord[0].get(FIELDS.request.name),
+        orderNumber: orderNumber,
       },
       message: 'Запит успішно створено!' 
     }, { status: 201 });

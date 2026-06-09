@@ -4,13 +4,14 @@ import { persist } from 'zustand/middleware';
 
 // Define the shape of a single cart item
 export interface CartItem {
-  id: string; // E.g., "mc-001-b-beige" (Product ID + Variation)
+  id: string;
   productId: string;
   title: string;
+  sku: string;
   price: number;
   image: string;
   quantity: number;
-  variation?: string; // Optional: To distinguish between colors/sizes
+  options: { name: string; value: string }[];
 }
 
 interface CartState {

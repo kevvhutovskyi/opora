@@ -29,9 +29,7 @@ export async function POST(req: Request) {
       }),
     });
 
-    const data = await telegramResponse.json();
-
-    console.log('tg_data =>', data)
+    const data = (await telegramResponse.json()) as { ok: boolean; description?: string };
 
     if (!data.ok) {
       return NextResponse.json({ error: data.description }, { status: 500 });

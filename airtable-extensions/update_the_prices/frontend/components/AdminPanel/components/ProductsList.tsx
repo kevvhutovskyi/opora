@@ -1,75 +1,120 @@
-import React from 'react';
-import { Box, Button, Heading, Text, colors } from '@airtable/blocks/ui';
+import React, { useMemo, useState } from 'react';
+import { Box, Button, Heading, Text, Icon, Input } from '@airtable/blocks/ui';
 import { Record } from '@airtable/blocks/models';
+import { FIELDS, UI } from '../constants';
+import { Card } from './ui';
+import { ProductRow } from './products-list/ProductRow';
 
 interface ProductListProps {
   productsRecords: Record[] | null;
+  variantsRecords: Record[] | null;
+  popularProductsRecords: Record[] | null;
   onNavigateToRequests: () => void;
+  onNavigateToJsonUpload: () => void;
   onCreateProduct: () => void;
   onEditProduct: (productId: string) => void;
 }
 
 export default function ProductList({
   productsRecords,
+  variantsRecords,
+  popularProductsRecords,
   onNavigateToRequests,
+  onNavigateToJsonUpload,
   onCreateProduct,
   onEditProduct,
 }: ProductListProps): JSX.Element {
-  
+  const [search, setSearch] = useState('');
+
+  // Кількість варіацій на кожен товар (для бейджа).
+  const variantCountByProduct = useMemo(() => {
+    const counts = new Map<string, number>();
+    (variantsRecords || []).forEach((v) => {
+      ((v.getCellValue(FIELDS.variant.product) as Array<{ id: string }> | null) || []).forEach((link) => {
+        counts.set(link.id, (counts.get(link.id) || 0) + 1);
+      });
+    });
+    return counts;
+  }, [variantsRecords]);
+
+  const popularIds = useMemo(() => {
+    const ids = new Set<string>();
+    (popularProductsRecords || []).forEach((rec) => {
+      ((rec.getCellValue(FIELDS.popular.products) as Array<{ id: string }> | null) || []).forEach((l) => ids.add(l.id));
+    });
+    return ids;
+  }, [popularProductsRecords]);
+
+  const filteredProducts = useMemo(() => {
+    if (!productsRecords) return null;
+    const q = search.trim().toLowerCase();
+    if (!q) return productsRecords;
+    return productsRecords.filter((p) =>
+      `${p.getCellValueAsString(FIELDS.product.model)} ${p.getCellValueAsString(FIELDS.product.manufacturer)}`
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [productsRecords, search]);
+
   if (!productsRecords) {
     return (
-      <Box padding={4} textAlign="center">
-        <Text textColor="light">Завантаження товарів...</Text>
-      </Box>
+      <Card padding={5} display="flex" justifyContent="center" alignItems="center" style={{ minHeight: 200 }}>
+        <Text textColor="light" size="large">Завантаження товарів…</Text>
+      </Card>
     );
   }
 
   return (
-    <Box backgroundColor="white" padding={4} borderRadius="large">
-      
-      {/* Header Section */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom={4}>
-        <Button marginRight={2} onClick={onNavigateToRequests}>
-          Заявки клієнтів
-        </Button>
-        <Heading>Каталог товарів</Heading>
-        <Button variant="primary" onClick={onCreateProduct}>
-          Додати товар
-        </Button>
-      </Box>
+    <Box display="flex" flexDirection="column" style={{ gap: 16 }}>
+      {/* Top bar */}
+      <Card padding={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box display="flex" flexDirection="column">
+            <Heading size="large" margin={0}>Каталог товарів</Heading>
+            <Text textColor="light" size="small">{productsRecords.length} позицій у базі</Text>
+          </Box>
+          <Box display="flex" style={{ gap: 8 }}>
+            <Button icon="aiAssistant" onClick={onNavigateToRequests}>Заявки</Button>
+            <Button icon="upload" onClick={onNavigateToJsonUpload}>JSON</Button>
+            <Button variant="primary" icon="plus" onClick={onCreateProduct}>Додати товар</Button>
+          </Box>
+        </Box>
+      </Card>
 
-      {/* Product List */}
-      <Box display="flex" flexDirection="column">
-        {productsRecords.length === 0 ? (
-          <Text textColor="light" textAlign="center" marginTop={4}>
-            Товарів поки немає. Створіть перший!
-          </Text>
+      {/* List */}
+      <Card padding={3}>
+        <Box marginBottom={3}>
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Пошук за моделлю або виробником…" />
+        </Box>
+
+        {filteredProducts && filteredProducts.length === 0 ? (
+          <Box
+            padding={5}
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            style={{ border: `1px dashed ${UI.borderStrong}`, borderRadius: 12, background: UI.rowBg }}
+          >
+            <Icon name="search" size={24} marginBottom={2} />
+            <Text textColor="light" size="large" marginBottom={3}>
+              {search ? 'Нічого не знайдено' : 'Товарів поки немає'}
+            </Text>
+            {!search && <Button variant="primary" icon="plus" onClick={onCreateProduct}>Створити перший товар</Button>}
+          </Box>
         ) : (
-          productsRecords.map((product) => (
-            <Box 
-              key={product.id} 
-              display="flex" 
-              justifyContent="space-between" 
-              alignItems="center"
-              padding={3} 
-              borderBottom="thick" 
-              borderColor={colors.GRAY_LIGHT_2}
-            >
-              <Box>
-                <Heading size="small">
-                  {product.getCellValueAsString('Модель') || 'Без моделі'}
-                </Heading>
-                <Text textColor="light">
-                  {product.getCellValueAsString('Виробник') || 'Виробник не вказано'}
-                </Text>
-              </Box>
-              <Button onClick={() => onEditProduct(product.id)}>
-                Редагувати
-              </Button>
-            </Box>
-          ))
+          <Box display="flex" flexDirection="column" style={{ gap: 8 }}>
+            {filteredProducts?.map((product) => (
+              <ProductRow
+                key={product.id}
+                product={product}
+                variantCount={variantCountByProduct.get(product.id) || 0}
+                isPopular={popularIds.has(product.id)}
+                onEdit={onEditProduct}
+              />
+            ))}
+          </Box>
         )}
-      </Box>
+      </Card>
     </Box>
   );
 }

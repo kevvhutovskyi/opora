@@ -1,15 +1,16 @@
 import { useBase, useRecords } from '@airtable/blocks/ui';
+import { FIELDS, TABLES } from '../constants';
 
 export function useCatalogData() {
   const base = useBase();
 
-  const productsTable = base.getTableByNameIfExists('Товари');
-  const variantsTable = base.getTableByNameIfExists('Варіації Товарів');
-  const optionsTable = base.getTableByNameIfExists('Опції');
-  const specsTable = base.getTableByNameIfExists('Характеристики');
-  const prodSpecsTable = base.getTableByNameIfExists('Товари/Характеристики');
-  const popularProductsTable = base.getTableByNameIfExists('Найпопулярніші Товари');
-  const requestsTable = base.getTableByNameIfExists('Запити');
+  const productsTable = base.getTableByNameIfExists(TABLES.products);
+  const variantsTable = base.getTableByNameIfExists(TABLES.variants);
+  const optionsTable = base.getTableByNameIfExists(TABLES.options);
+  const specsTable = base.getTableByNameIfExists(TABLES.specs);
+  const prodSpecsTable = base.getTableByNameIfExists(TABLES.productSpecs);
+  const popularProductsTable = base.getTableByNameIfExists(TABLES.popularProducts);
+  const requestsTable = base.getTableByNameIfExists(TABLES.requests);
 
   const productsRecords = useRecords(productsTable);
   const variantsRecords = useRecords(variantsTable);
@@ -18,7 +19,7 @@ export function useCatalogData() {
   const prodSpecsRecords = useRecords(prodSpecsTable);
   const popularProductsRecords = useRecords(popularProductsTable);
   const requestsRecords = useRecords(requestsTable, {
-    sorts: [{ field: 'Номер', direction: 'desc' }],
+    sorts: [{ field: FIELDS.request.number, direction: 'desc' }],
   });
 
   return {
@@ -36,6 +37,6 @@ export function useCatalogData() {
       prodSpecsRecords,
       popularProductsRecords,
       requestsRecords,
-    }
+    },
   };
 }

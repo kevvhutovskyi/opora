@@ -9,5 +9,6 @@ export type ClientRequest = {
   name: string;
   email?: string;
   phoneNumber?: string;
+  orderNumber?: string; // Номер заявки, згенерований на клієнті
   orders: CartItem[];
 }

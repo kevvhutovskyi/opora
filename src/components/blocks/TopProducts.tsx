@@ -12,8 +12,6 @@ type TopProductsProps = {
 export default function TopProducts({ products }: TopProductsProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  console.log(products);
-  
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
       const scrollAmount = 320; 
@@ -61,18 +59,19 @@ export default function TopProducts({ products }: TopProductsProps) {
         >
           {products.map((product) => {
             // Формуємо єдиний об'єкт
-            const productDetails: ProductDetails = {
+            const productDetails: CatalogProductDetails = {
               id: product.id,
-              name: product.name || "MODELO CLASSIC",
+              name: product.name,
               price: product.price || 0,
               href: `/catalog/${product.id}`,
-              variations: product.variations
+              variations: product.variations,
+              allOptionNames: [],
             };
 
             return (
               <div 
                 key={product.id} 
-                className="flex-shrink-0 w-[260px] md:w-[300px] lg:w-[320px] snap-start"
+                className="shrink-0 w-65  md:w-75 lg:w-[320px] snap-start"
               >
                 {/* Передаємо єдиний проп `product` */}
                 <ProductCard product={productDetails} />

@@ -1,29 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Drawer from "@/components/layout/Drawer";
 import FilterContent, { DynamicFilters } from "@/components/blocks/FilterContent";
 import SortContent from "@/components/blocks/SortContent";
 import ProductCard from "@/components/ui/ProductCard";
+import ProductCardSkeleton from "@/components/ui/ProductCardSkeleton";
 import { FiltersIcon, SortingIcon } from "@/components/ui/Icons";
-
-interface CatalogProduct {
-  id: string;
-  name: string;
-  href: string;
-  price: number;
-  image?: string; 
-  colors?: string[]; 
-}
+import { CatalogProductDetails } from "@/lib";
 
 type CatalogClientProps = { 
-  initialProducts: CatalogProduct[], 
+  initialProducts: CatalogProductDetails[], 
   filterOptions: DynamicFilters 
 }
 
 export default function CatalogClient({ initialProducts, filterOptions }: CatalogClientProps) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+
+  // Wrap navigation in a transition so `isPending` stays true while the server
+  // re-fetches the filtered catalog — that's what drives the skeleton state.
+  const navigate = (queryString: string) => {
+    startTransition(() => {
+      router.push(`${pathname}?${queryString}`);
+    });
+  };
 
   return (
     <main className="min-h-screen bg-opora-white pb-24">
@@ -66,7 +72,14 @@ export default function CatalogClient({ initialProducts, filterOptions }: Catalo
 
       {/* 3. Product Grid */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 mt-12">
-        {initialProducts.length === 0 ? (
+        {isPending ? (
+          // Skeleton grid while the server re-fetches filtered results
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-8">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : initialProducts.length === 0 ? (
           <div className="text-center text-opora-brown/60 py-20">
             <p className="text-xl">За вашим запитом товарів не знайдено.</p>
             <p className="mt-2 font-light">Спробуйте змінити параметри фільтру.</p>
@@ -74,8 +87,8 @@ export default function CatalogClient({ initialProducts, filterOptions }: Catalo
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-8">
             {initialProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
+              <ProductCard
+                key={product.id}
                 product={product} // Make sure your ProductCard expects a "product" prop containing the whole object
               />
             ))}
@@ -85,11 +98,11 @@ export default function CatalogClient({ initialProducts, filterOptions }: Catalo
 
       {/* 4. Drawers */}
       <Drawer isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} position="left">
-        <FilterContent onClose={() => setIsFilterOpen(false)} filters={filterOptions} />
+        <FilterContent onClose={() => setIsFilterOpen(false)} filters={filterOptions} onApply={navigate} />
       </Drawer>
 
       <Drawer isOpen={isSortOpen} onClose={() => setIsSortOpen(false)} position="left">
-        <SortContent onClose={() => setIsSortOpen(false)} />
+        <SortContent onClose={() => setIsSortOpen(false)} onApply={navigate} />
       </Drawer>
 
     </main>

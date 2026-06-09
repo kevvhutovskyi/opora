@@ -19,15 +19,6 @@ export interface ProductDetails {
   name: string;
   price: number;
   href: string;
-  pdfLink: string;
   variations: VariationImage[];
-}
-
-export interface ProductDetails {
-  id: string;
-  name: string;
-  minPrice: number;
-  description: string;
-  specifications: Specification[];
-  variantions: VariationImage[];
+  pdfLink?: string;
 }

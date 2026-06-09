@@ -1,10 +1,8 @@
-// Ideally, this should come from an environment variable in a real app
-// e.g., process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-const NEXT_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { API_BASE_URL as NEXT_API_BASE_URL } from '../constants';
 
 export const mediaApi = {
   
-  uploadVideo: async (file: File, productId: string): Promise<void> => {
+  uploadVideo: async (file: File, productId: string): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('productId', productId);
@@ -14,9 +12,13 @@ export const mediaApi = {
       body: formData,
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error('Помилка завантаження відео');
+      throw new Error(data.error || 'Помилка завантаження відео');
     }
+
+    return data.url; 
   },
 
   deleteVideo: async (url: string, productId: string): Promise<void> => {
@@ -31,22 +33,20 @@ export const mediaApi = {
     }
   },
 
-  uploadImages: async (files: FileList | File[], variantId: string): Promise<void> => {
+  uploadImages: async (files: FileList, variantId: string) => {
     const formData = new FormData();
-    
-    Array.from(files).forEach((file) => {
-      formData.append('file', file);
-    });
+    Array.from(files).forEach(file => formData.append('file', file));
     formData.append('variationId', variantId);
 
-    const response = await fetch(`${NEXT_API_BASE_URL}/api/products/media/images`, {
+    const res = await fetch(`${NEXT_API_BASE_URL}/api/products/media/images`, {
       method: 'POST',
       body: formData,
     });
 
-    if (!response.ok) {
-      throw new Error('Помилка завантаження картинок');
-    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    
+    return data.addedUrls; 
   },
 
   deleteImage: async (url: string, variantId: string): Promise<void> => {

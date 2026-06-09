@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import r2Client from "@/lib/r2/r2.client";
-import { tableProducts, tableVariants } from "@/lib";
+import { tableProducts, FIELDS } from "@/lib";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,18 +17,20 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     
     const uniqueFilename = `${Date.now()}-${video.name.replace(/\s+/g, '-')}`;
+    // Зберігаємо безпосередньо в папку videos/ всередині R2
+    const fileKey = `videos/${uniqueFilename}`;
 
     await r2Client.send(new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: uniqueFilename,
+      Key: fileKey,
       Body: buffer,
       ContentType: video.type,
     }));
 
-    const newVideoUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/videos/${uniqueFilename}`;
+    const newVideoUrl = `${process.env.R2_PUBLIC_DOMAIN}/${fileKey}`;
 
     await tableProducts.update(productId, {
-      'Відео Збірки': newVideoUrl
+      [FIELDS.product.assemblyVideo]: newVideoUrl
     });
 
     return NextResponse.json({ 
@@ -45,30 +47,27 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
-    const { url, recordId } = body as { url: string, recordId: string };
+    const { url, productId } = body as { url: string, productId: string };
 
-    // type може бути 'variant' (для картинок) або 'product' (для відео)
-    if (!url || !recordId) {
-      return NextResponse.json({ error: 'Відсутні обов\'язкові параметри (url, recordId)' }, { status: 400 });
+    if (!url || !productId) {
+      return NextResponse.json({ error: 'Відсутні обов\'язкові параметри (url, productId)' }, { status: 400 });
     }
 
-    // 1. Витягуємо Key (ім'я файлу) з URL для Cloudflare R2
-    // Наприклад: https://твій-домен.com/123456-image.jpg -> 123456-image.jpg
     const urlObj = new URL(url);
-    const fileKey = urlObj.pathname.substring(1); // Видаляємо перший слеш '/'
-
+    const fileKey = urlObj.pathname.substring(1).split('/')[1];
+    
     // 2. Видаляємо файл з Cloudflare R2
     await r2Client.send(new DeleteObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: fileKey,
     }));
 
-    // 3. Оновлюємо Airtable (видаляємо лінк із текстового поля)
-    await tableVariants.update(recordId, {
-      'Фото (URLs)': '',
+    // 3. Оновлюємо Airtable (очищаємо поле відео для конкретного продукту)
+    await tableProducts.update(productId, {
+      [FIELDS.product.assemblyVideo]: '',
     });
 
-    return NextResponse.json({ success: true, message: 'Файл успішно видалено' }, { status: 200 });
+    return NextResponse.json({ success: true, message: 'Відео успішно видалено' }, { status: 200 });
 
   } catch (error) {
     console.error('Delete File Error:', error);

@@ -5,8 +5,8 @@ export async function GET() {
   try {
     const response = await getTopProducts();
     return NextResponse.json(response);
-  } catch (e) {
-    console.log(e);
-    return NextResponse.json({ error: 'Помилка видалення файлу' }, { status: 500 });
+  } catch (error) {
+    console.error('API Top Products Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-} 
+}

@@ -1,30 +1,27 @@
 import { airtableBase } from "..";
+import { FIELDS, TABLES } from "../schema";
 import { Comment } from "./types";
 
 export async function getComments(productName?: string | null): Promise<Comment[]> {
-  // If a variation is passed, we filter. Otherwise, we fetch everything.
-  
-  const filterByFormula = productName 
-    ? `{Товар} = '${productName}'` 
-    : "";
+  // Якщо передано назву товару — фільтруємо, інакше беремо всі коментарі.
+  const filterByFormula = productName ? `{${FIELDS.comment.product}} = '${productName}'` : "";
 
-  const records = await airtableBase("Коментарі").select({
-    ...(filterByFormula ? { filterByFormula } : {})
-  }).all(); // .all() ensures we get everything without manual pagination
+  const records = await airtableBase(TABLES.comments)
+    .select(filterByFormula ? { filterByFormula } : {})
+    .all(); // .all() гарантує отримання всіх записів без ручної пагінації
 
   return records.map((record) => {
-    // Note: If "Варіація Товару" is a Linked Record/Lookup, Airtable might return an array. 
-    // We safely stringify it just in case.
-    const variationField = record.get("Товар");
+    // "Товар" може бути Linked Record/Lookup → Airtable поверне масив. Безпечно розгортаємо.
+    const variationField = record.get(FIELDS.comment.product);
     const parsedVariation = Array.isArray(variationField) ? variationField[0] : variationField;
 
     return {
       id: record.id,
-      authorName: String(record.get("Ім'я Прізвище") || ""),
-      rating: Number(record.get("Рейтинг") || 0),
-      text: String(record.get("Текст") || ""),
+      authorName: String(record.get(FIELDS.comment.authorName) || ""),
+      rating: Number(record.get(FIELDS.comment.rating) || 0),
+      text: String(record.get(FIELDS.comment.text) || ""),
       variation: parsedVariation ? String(parsedVariation) : undefined,
-      createdAt: record.get("Створено") ? String(record.get("Створено")) : undefined, // Витягуємо дату
+      createdAt: record.get(FIELDS.comment.createdAt) ? String(record.get(FIELDS.comment.createdAt)) : undefined,
     };
   });
 }

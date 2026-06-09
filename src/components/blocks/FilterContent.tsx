@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 const CATEGORIES = [
   { label: "Всі", value: "All" },
@@ -17,6 +17,9 @@ export interface DynamicFilters { seatColors: FilterOption[]; legColors: FilterO
 interface FilterContentProps {
   onClose: () => void;
   filters: DynamicFilters;
+  // Called with the new query string; the parent owns navigation (so it can
+  // wrap it in a transition and show the loading skeleton).
+  onApply: (queryString: string) => void;
 }
 
 const FilterAccordion = ({ title, children, defaultOpen = true }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) => {
@@ -33,9 +36,7 @@ const FilterAccordion = ({ title, children, defaultOpen = true }: { title: strin
   );
 };
 
-export default function FilterContent({ onClose, filters }: FilterContentProps) {
-  const router = useRouter();
-  const pathname = usePathname();
+export default function FilterContent({ onClose, filters, onApply }: FilterContentProps) {
   const searchParams = useSearchParams();
 
   const parseUrlParam = (paramName: string) => {
@@ -79,7 +80,7 @@ export default function FilterContent({ onClose, filters }: FilterContentProps) 
     if (legColors.length > 0) params.set("legColor", legColors.join(',')); else params.delete("legColor");
     if (tableColors.length > 0) params.set("tableColor", tableColors.join(',')); else params.delete("tableColor");
 
-    router.push(`${pathname}?${params.toString()}`);
+    onApply(params.toString());
     onClose();
   };
 
@@ -119,7 +120,7 @@ export default function FilterContent({ onClose, filters }: FilterContentProps) 
             {filters.seatColors.map((c) => (
               <label key={c.label} className="flex items-center gap-3 cursor-pointer group">
                 <div className={`w-5 h-5 rounded-full shadow-sm transition-transform ${seatColors.includes(c.label) ? 'ring-2 ring-opora-brown ring-offset-1 scale-110' : 'border border-black/10 group-hover:scale-110'}`} style={{ backgroundColor: c.hex }} />
-                <span className={`text-lg font-light ${seatColors.includes(c.label) ? "font-medium underline underline-offset-4" : ""}`}>{c.label.split(' ')[0]}</span>
+                <span className={`text-lg font-light ${seatColors.includes(c.label) ? "font-medium underline underline-offset-4" : ""}`}>{c.label.includes(':') ? c.label.split(':').pop()!.trim() : c.label}</span>
                 <input type="checkbox" className="hidden" checked={seatColors.includes(c.label)} onChange={() => toggleSelection(setSeatColors, c.label)} />
               </label>
             ))}
@@ -140,7 +141,7 @@ export default function FilterContent({ onClose, filters }: FilterContentProps) 
             {filters.tableColors.map((c) => (
               <label key={c.label} className="flex items-center gap-3 cursor-pointer group">
                 <div className={`w-5 h-5 rounded-full shadow-sm transition-transform ${tableColors.includes(c.label) ? 'ring-2 ring-opora-brown ring-offset-1 scale-110' : 'border border-black/10 group-hover:scale-110'}`} style={{ backgroundColor: c.hex }} />
-                <span className={`text-lg font-light ${tableColors.includes(c.label) ? "font-medium underline underline-offset-4" : ""}`}>{c.label.split(' ')[0]}</span>
+                <span className={`text-lg font-light ${tableColors.includes(c.label) ? "font-medium underline underline-offset-4" : ""}`}>{c.label.includes(':') ? c.label.split(':').pop()!.trim() : c.label}</span>
                 <input type="checkbox" className="hidden" checked={tableColors.includes(c.label)} onChange={() => toggleSelection(setTableColors, c.label)} />
               </label>
             ))}
@@ -161,7 +162,7 @@ export default function FilterContent({ onClose, filters }: FilterContentProps) 
             {filters.legColors.map((c) => (
               <label key={c.label} className="flex items-center gap-3 cursor-pointer group">
                 <div className={`w-5 h-5 rounded-full shadow-sm transition-transform ${legColors.includes(c.label) ? 'ring-2 ring-opora-brown ring-offset-1 scale-110' : 'border border-black/10 group-hover:scale-110'}`} style={{ backgroundColor: c.hex }} />
-                <span className={`text-lg font-light ${legColors.includes(c.label) ? "font-medium underline underline-offset-4" : ""}`}>{c.label.split(' ')[0]}</span>
+                <span className={`text-lg font-light ${legColors.includes(c.label) ? "font-medium underline underline-offset-4" : ""}`}>{c.label.includes(':') ? c.label.split(':').pop()!.trim() : c.label}</span>
                 <input type="checkbox" className="hidden" checked={legColors.includes(c.label)} onChange={() => toggleSelection(setLegColors, c.label)} />
               </label>
             ))}

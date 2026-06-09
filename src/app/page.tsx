@@ -9,11 +9,13 @@ export default async function Home() {
 	const topProducts = await getTopProducts();
 
 	return (
-		<div className="">
+		<div>
 			<HeroSlider />
 			<TopProducts products={topProducts} />
 			<Categories />
-			<Reviews />
+			<div className="px-8 md:px-12">
+				<Reviews />
+			</div>
 			<Benefits />
 		</div>
 	);

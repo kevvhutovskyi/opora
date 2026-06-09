@@ -4,6 +4,7 @@ import { Rubik } from "next/font/google";
 import "./globals.css"; // 1. ЦЕЙ ІМПОРТ Є ОБОВ'ЯЗКОВИМ! Без нього Tailwind не завантажиться.
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import Providers from "./providers";
 
 // 2. Ініціалізуємо шрифт з правильною CSS-змінною
 const rubik = Rubik({ 
@@ -27,9 +28,11 @@ export default function RootLayout({
     <html lang="uk" className={`${rubik.variable}`}>
       {/* 4. Задаємо font-sans (який тепер посилається на Rubik) та базовий колір тексту */}
       <body className="font-sans text-opora-brown antialiased" suppressHydrationWarning>
-        <Header />
-        {children}
-        <Footer />
+        <Providers>
+          <Header />
+          {children}
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

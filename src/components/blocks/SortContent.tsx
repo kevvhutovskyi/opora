@@ -1,7 +1,7 @@
 // src/components/blocks/SortContent.tsx
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 const SORT_OPTIONS = [
   { label: "За замовчуванням", value: "default" },
@@ -10,16 +10,20 @@ const SORT_OPTIONS = [
   { label: "Новинки", value: "newest" },
 ];
 
-export default function SortContent({ onClose }: { onClose: () => void }) {
-  const router = useRouter();
-  const pathname = usePathname();
+export default function SortContent({
+  onClose,
+  onApply,
+}: {
+  onClose: () => void;
+  onApply: (queryString: string) => void;
+}) {
   const searchParams = useSearchParams();
   const currentSort = searchParams.get("sort") || "default";
 
   const handleSortChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("sort", value);
-    router.push(`${pathname}?${params.toString()}`);
+    onApply(params.toString());
     onClose(); // Close drawer after selection
   };
 

@@ -24,8 +24,6 @@ export default async function CatalogPage({
   const legColors = params.legColor ? (params.legColor as string).split(',') : [];
   const tableColors = params.tableColor ? (params.tableColor as string).split(',') : [];
 
-  console.log(type, sort, seatColors, legColors, tableColors);
-
   const [products, filterOptions] = await Promise.all([
     getFilteredCatalog({ type, sort, seatColors, legColors, tableColors }),
     getFilterOptions()

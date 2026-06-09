@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     // It's highly recommended to fix TS errors before a prod build, 
     // otherwise runtime crashes will slip through.
     ignoreBuildErrors: true, 
+    
   },
   async headers() {
     return [
@@ -21,6 +22,9 @@ const nextConfig: NextConfig = {
           ]
         }
     ]
+  },
+  env: {
+    AIRTABLE_API_KEY: process.env.AIRTABLE_API_KEY,
   }
 };
 

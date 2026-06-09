@@ -2,11 +2,20 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { CatalogProductDetails, VariationImage } from '@/lib'; 
+import { CatalogProductDetails, VariationImage } from '@/lib';
+import { toHue } from '@/lib/utils';
 
 export default function ProductCard({ product }: { product: CatalogProductDetails }) {
-  const variations = product.variations || [];
-  
+  // Свотч може бути одинарним або розділеним навпіл (оббивка + ніжки).
+  // Сортуємо за основним кольором (перший hex), розділені — з другим кольором як tiebreaker.
+  const variations = [...(product.variations || [])].sort((a, b) => {
+    const ah = a.allHexes ?? [], bh = b.allHexes ?? [];
+    return (
+      toHue(ah[0]?.hex) - toHue(bh[0]?.hex) ||
+      toHue(ah[1]?.hex) - toHue(bh[1]?.hex)
+    );
+  });
+
   // State to track which color variation the user is currently looking at
   const [activeVariation, setActiveVariation] = useState<VariationImage | undefined>(variations[0]);
 

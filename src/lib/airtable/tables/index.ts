@@ -1,10 +1,11 @@
 import Airtable from 'airtable';
+import { TABLES } from '../schema';
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE_ID!);
 
-export const tableProducts = base('Товари');
-export const tableVariants = base('Варіації Товарів');
-export const tableOptions = base('Опції');
-export const tableProductSpecs = base('Товари/Характеристики');
-export const tableSpecs = base('Характеристики');
-export const tableRequests = base('Запити');
+export const tableProducts = base(TABLES.products);
+export const tableVariants = base(TABLES.variants);
+export const tableOptions = base(TABLES.options);
+export const tableProductSpecs = base(TABLES.productSpecs);
+export const tableSpecs = base(TABLES.specs);
+export const tableRequests = base(TABLES.requests);
