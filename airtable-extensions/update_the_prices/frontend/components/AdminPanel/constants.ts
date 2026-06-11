@@ -14,7 +14,6 @@ export const TABLES = {
 export const FIELDS = {
   product: {
     model: 'Модель',
-    manufacturer: 'Виробник',
     description: 'Опис',
     assemblyVideo: 'Відео Збірки',
   },
@@ -32,6 +31,7 @@ export const FIELDS = {
   },
   spec: {
     name: 'Назва',
+    filterable: 'Фільтрується',
   },
   productSpec: {
     product: 'Товар',

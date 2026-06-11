@@ -25,7 +25,7 @@ export default function TopProducts({ products }: TopProductsProps) {
   if (!products || products.length === 0) return null;
 
   return (
-    <section className="py-12 md:py-20 bg-opora-white overflow-hidden">
+    <section className="py-12 md:py-20 px-4 md:px-0 bg-opora-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-0 md:px-0d">
         
         {/* Шапка секції */}

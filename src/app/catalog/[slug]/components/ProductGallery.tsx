@@ -2,6 +2,7 @@
 "use client";
 
 import { UIEvent, useRef, useState } from "react";
+import Image from "next/image";
 
 interface ProductGalleryProps {
   images: string[];
@@ -25,7 +26,7 @@ export default function ProductGallery({ images, onImageClick }: ProductGalleryP
         <div
           ref={sliderRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none"
         >
           {images.map((img, idx) => (
             <div
@@ -33,9 +34,13 @@ export default function ProductGallery({ images, onImageClick }: ProductGalleryP
               onClick={() => onImageClick(idx)}
               className="w-full shrink-0 snap-center aspect-square bg-opora-softBeige overflow-hidden relative cursor-pointer"
             >
-              <div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${img})` }}
+              <Image
+                src={img}
+                alt={`Фото товару ${idx + 1}`}
+                fill
+                sizes="100vw"
+                priority={idx === 0}
+                className="object-cover object-center"
               />
             </div>
           ))}
@@ -63,9 +68,13 @@ export default function ProductGallery({ images, onImageClick }: ProductGalleryP
             onClick={() => onImageClick(idx)}
             className="aspect-square bg-opora-softBeige overflow-hidden relative cursor-pointer group"
           >
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-              style={{ backgroundImage: `url(${img})` }}
+            <Image
+              src={img}
+              alt={`Фото товару ${idx + 1}`}
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              priority={idx === 0}
+              className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
             />
           </div>
         ))}

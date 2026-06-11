@@ -1,4 +1,5 @@
-import { tableOptions, tableProducts, tableVariants } from "../tables";
+import { unstable_cache } from "next/cache";
+import { tableOptions, tableProducts, tableProductSpecs, tableSpecs, tableVariants } from "../tables";
 import { fetchRecordsByIds, indexById, parseImageUrls } from "../helpers";
 import { CATEGORY_TABLES, FIELDS } from "../schema";
 import { ProductType } from "./types";
@@ -10,8 +11,6 @@ export interface CatalogProductDetails {
   price: number;
   href: string;
   variations: VariationImage[];
-  // Назви всіх опцій товару (для фільтрації за кольором). Внутрішнє поле —
-  // не для відображення, тому необов'язкове для споживачів типу.
   allOptionNames?: string[];
 }
 
@@ -21,12 +20,25 @@ export interface FilterParamsWithArrays {
   seatColors?: string[];
   legColors?: string[];
   tableColors?: string[];
+  specFilters?: Record<string, string[]>; // specName → selected values
 }
 
-export async function getFilteredCatalog(
+export interface SpecFilterGroup {
+  specName: string;
+  values: string[];
+}
+
+async function fetchFilteredCatalog(
   params: FilterParamsWithArrays
 ): Promise<CatalogProductDetails[]> {
-  const { type, sort = "default", seatColors = [], legColors = [], tableColors = [] } = params;
+  const {
+    type,
+    sort = "default",
+    seatColors = [],
+    legColors = [],
+    tableColors = [],
+    specFilters = {},
+  } = params;
 
   // 1. Базова вибірка товарів за категорією
   const productsData = await tableProducts
@@ -47,6 +59,46 @@ export async function getFilteredCatalog(
     (v) => (v.get(FIELDS.variant.options) as string[]) || []
   );
   const optionsById = indexById(await fetchRecordsByIds(tableOptions, optionIds));
+
+  // 2b. Якщо є фільтри за характеристиками — підвантажуємо ProductSpecs + Specs
+  const hasSpecFilters = Object.keys(specFilters).some((k) => specFilters[k].length > 0);
+  let productSpecMap = new Map<string, Map<string, string>>(); // productId → (specName → value)
+
+  if (hasSpecFilters) {
+    const allProdSpecIds = productsData.flatMap(
+      (p) => (p.get(FIELDS.product.specs) as string[]) || []
+    );
+    const prodSpecRecords = await fetchRecordsByIds(tableProductSpecs, allProdSpecIds);
+
+    const specIds = prodSpecRecords.flatMap(
+      (ps) => (ps.get(FIELDS.productSpec.spec) as string[]) || []
+    );
+    const specsById = indexById(await fetchRecordsByIds(tableSpecs, specIds));
+
+    // Build map: productId → (specName → value)
+    // ProductSpec has a linked "Товар" field pointing back to the product.
+    // We use product.specs array to know which prodSpecRecords belong to each product.
+    const prodSpecById = indexById(prodSpecRecords);
+
+    for (const product of productsData) {
+      const prodSpecIds = (product.get(FIELDS.product.specs) as string[]) || [];
+      const specValueMap = new Map<string, string>();
+
+      for (const psId of prodSpecIds) {
+        const ps = prodSpecById.get(psId);
+        if (!ps) continue;
+        const specId = ((ps.get(FIELDS.productSpec.spec) as string[]) || [])[0];
+        if (!specId) continue;
+        const spec = specsById.get(specId);
+        if (!spec) continue;
+        const name = String(spec.get(FIELDS.spec.name) || "");
+        const value = String(ps.get(FIELDS.productSpec.value) || "");
+        if (name) specValueMap.set(name, value);
+      }
+
+      productSpecMap.set(product.id, specValueMap);
+    }
+  }
 
   // 3. Збираємо повні товари; пропускаємо ті, що без варіацій
   let catalog = productsData
@@ -87,8 +139,7 @@ export async function getFilteredCatalog(
     })
     .filter((product) => product.variations.length > 0);
 
-  // 4. Фільтрація за кольорами (in-memory): товар підходить, якщо містить
-  //    хоча б одну з обраних опцій у кожній заданій групі
+  // 4. Фільтрація за кольорами (in-memory)
   const colorFilters = [seatColors, legColors, tableColors].filter((c) => c.length > 0);
   if (colorFilters.length > 0) {
     catalog = catalog.filter((product) =>
@@ -96,6 +147,18 @@ export async function getFilteredCatalog(
         colors.some((c) => product.allOptionNames.includes(c))
       )
     );
+  }
+
+  // 4b. Фільтрація за характеристиками
+  if (hasSpecFilters) {
+    catalog = catalog.filter((product) => {
+      const specValueMap = productSpecMap.get(product.id);
+      return Object.entries(specFilters).every(([specName, selectedValues]) => {
+        if (selectedValues.length === 0) return true;
+        const productValue = specValueMap?.get(specName);
+        return productValue !== undefined && selectedValues.includes(productValue);
+      });
+    });
   }
 
   // 5. Сортування
@@ -113,14 +176,14 @@ export async function getFilteredCatalog(
       break;
   }
 
-  // 6. Прибираємо службове поле createdAt
+  // 6. Прибираємо службові поля
   return catalog.map(({ createdAt, ...rest }) => rest);
 }
 
-export async function getFilterOptions() {
+async function fetchFilterOptions() {
+  // Кольорові опції — як і раніше
   const optionsData = await tableOptions.select().all();
 
-  // Дедуплікуємо опції за назвою в межах кожної групи (сидіння / ніжки / стіл)
   const seatMap = new Map<string, string>();
   const legMap = new Map<string, string>();
   const tableMap = new Map<string, string>();
@@ -131,7 +194,6 @@ export async function getFilterOptions() {
     const hex = String(record.get(FIELDS.option.value) || "").trim();
     const lower = name.toLowerCase();
 
-    // Назва опції має вигляд "Колір оббивки: Бежевий" / "Колір ніжок: Чорний" / "Колір стола: ..."
     if (lower.includes("оббивки") || lower.includes("сидіння")) seatMap.set(name, hex);
     else if (lower.includes("ніжок") || lower.includes("ніжки")) legMap.set(name, hex);
     else if (lower.includes("стол")) tableMap.set(name, hex);
@@ -140,9 +202,54 @@ export async function getFilterOptions() {
   const toOptions = (map: Map<string, string>) =>
     Array.from(map, ([label, hex]) => ({ label, hex }));
 
+  // Характеристики-фільтри — тільки ті, де Фільтрується = true
+  const filterableSpecs = await tableSpecs
+    .select({ filterByFormula: `{${FIELDS.spec.filterable}}=1` })
+    .all();
+
+  let specFilters: SpecFilterGroup[] = [];
+
+  if (filterableSpecs.length > 0) {
+    // Для кожної такої характеристики — збираємо унікальні значення з усіх продуктів
+    const filterableSpecIds = new Set(filterableSpecs.map((s) => s.id));
+
+    const allProdSpecs = await tableProductSpecs.select().all();
+
+    // Group by spec id → collect values
+    const specValuesMap = new Map<string, Set<string>>();
+    for (const ps of allProdSpecs) {
+      const specId = ((ps.get(FIELDS.productSpec.spec) as string[]) || [])[0];
+      if (!specId || !filterableSpecIds.has(specId)) continue;
+      const value = String(ps.get(FIELDS.productSpec.value) || "").trim();
+      if (!value) continue;
+      if (!specValuesMap.has(specId)) specValuesMap.set(specId, new Set());
+      specValuesMap.get(specId)!.add(value);
+    }
+
+    specFilters = filterableSpecs
+      .map((spec) => ({
+        specName: String(spec.get(FIELDS.spec.name) || ""),
+        values: [...(specValuesMap.get(spec.id) || [])].sort(),
+      }))
+      .filter((g) => g.specName && g.values.length > 0);
+  }
+
   return {
     seatColors: toOptions(seatMap),
     legColors: toOptions(legMap),
     tableColors: toOptions(tableMap),
+    specFilters,
   };
 }
+
+export const getFilteredCatalog = unstable_cache(
+  fetchFilteredCatalog,
+  ["catalog-filtered"],
+  { revalidate: 3600, tags: ["catalog"] }
+);
+
+export const getFilterOptions = unstable_cache(
+  fetchFilterOptions,
+  ["catalog-filter-options"],
+  { revalidate: 3600, tags: ["catalog"] }
+);

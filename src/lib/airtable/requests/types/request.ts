@@ -11,4 +11,7 @@ export type ClientRequest = {
   phoneNumber?: string;
   orderNumber?: string; // Номер заявки, згенерований на клієнті
   orders: CartItem[];
+  // Доставка «Нова Пошта» (опційно) — зберігається в заявці
+  deliveryCity?: string;
+  deliveryWarehouse?: string;
 }

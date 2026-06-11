@@ -10,7 +10,12 @@ export async function GET(request: Request) {
 
     const comments = await getComments(productName);
 
-    return NextResponse.json(comments, { status: 200 });
+    return NextResponse.json(comments, {
+      status: 200,
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
   } catch (error) {
     console.error("Failed to fetch comments from Airtable:", error);
     

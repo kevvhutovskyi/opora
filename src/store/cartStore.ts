@@ -1,8 +1,6 @@
-// src/store/cartStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// Define the shape of a single cart item
 export interface CartItem {
   id: string;
   productId: string;
@@ -20,6 +18,11 @@ interface CartState {
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  // UI: стан відкриття бокового кошика (керується глобально, щоб
+  // будь-який компонент — наприклад CartToast — міг відкрити кошик)
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
   // Computed values
   getTotalPrice: () => number;
   getTotalItems: () => number;
@@ -29,6 +32,10 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+
+      isCartOpen: false,
+      openCart: () => set({ isCartOpen: true }),
+      closeCart: () => set({ isCartOpen: false }),
 
       addItem: (newItem) => {
         set((state) => {
@@ -77,6 +84,9 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: 'opora-cart-storage', // The key used in localStorage
+      // Зберігаємо лише товари — UI-прапорці (isCartOpen) не персистимо,
+      // інакше кошик відкривався б сам після перезавантаження сторінки.
+      partialize: (state) => ({ items: state.items }),
     }
   )
 );

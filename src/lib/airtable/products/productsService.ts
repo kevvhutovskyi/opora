@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { FieldSet, Record as AirtableRecord } from "airtable";
 import { GeneralProduct, ProductDetails } from "./types";
 import { airtableBase } from "..";
@@ -139,7 +140,7 @@ export interface ProductDetail {
  * Server-only (читає Airtable напряму). Повертає null, якщо товар не знайдено.
  * Використовується і SSR-сторінкою товару, і роутом /api/products/[id].
  */
-export async function getProductById(productId: string): Promise<ProductDetail | null> {
+export const getProductById = cache(async (productId: string): Promise<ProductDetail | null> => {
   const productRecord = await tableProducts.find(productId).catch(() => null);
   if (!productRecord) return null;
 
@@ -178,7 +179,7 @@ export async function getProductById(productId: string): Promise<ProductDetail |
     specifications: await getProductSpecifications(productRecord),
     variants,
   };
-}
+});
 
 /** Join через "Товари/Характеристики" → "Характеристики", повертає [{ name, value }]. */
 async function getProductSpecifications(

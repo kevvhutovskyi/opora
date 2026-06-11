@@ -20,19 +20,19 @@ export const CloseIcon = ({ className }: {className?: string}) => (
 
 export const ArrowRightIcon = ({ className }: {className?: string}) => (
     <svg className={className} width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M3 19H35M19 35L35 19L19 3" stroke="#5E4838" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M3 19H35M19 35L35 19L19 3" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
 );
 
 export const SliderArrowLeftIcon = ({ className }: {className?: string}) => (
     <svg className={className} width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M6.83333 1L1 6.83333L6.83333 12.6667M1 6.83333H12.6667" stroke="#5E4838" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M6.83333 1L1 6.83333L6.83333 12.6667M1 6.83333H12.6667" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
 )
 
 export const SliderArrowRightIcon = ({ className }: {className?: string}) => (
     <svg className={className} width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M1 6.83333H12.6667M6.83333 12.6667L12.6667 6.83333L6.83333 1" stroke="#5E4838" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M1 6.83333H12.6667M6.83333 12.6667L12.6667 6.83333L6.83333 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
 )
 

@@ -124,37 +124,42 @@ export default function Reviews({ variation }: ReviewsProps) {
     setActiveSlide(Math.round(el.scrollLeft / el.offsetWidth));
   };
 
-  // Логіка плавного скролу для стрілочок
+  // Логіка плавного скролу для стрілочок — працює і на десктопі, і на мобільному.
+  // Прокручуємо видимий контейнер: десктопний — на ширину картки, мобільний — на цілий слайд.
   const scroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 320; // Приблизна ширина однієї картки + gap
-      scrollContainerRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth",
-      });
+    const sign = direction === "left" ? -1 : 1;
+    const desktop = scrollContainerRef.current;
+    if (desktop) {
+      desktop.scrollBy({ left: sign * 320, behavior: "smooth" });
+    }
+    const mobile = mobileSliderRef.current;
+    if (mobile) {
+      mobile.scrollBy({ left: sign * mobile.offsetWidth, behavior: "smooth" });
     }
   };
 
   if (isLoading) {
-    return <div className="py-12 px-4 md:px-8 bg-opora-menu animate-pulse h-[300px] w-full" />;
+    return <div className="py-12 px-4 md:px-8 bg-opora-menu animate-pulse h-75 w-full" />;
   }
 
   // Якщо відгуків немає, взагалі не рендеримо секцію
   if (comments.length === 0) return null;
 
   return (
-    <section className="py-12 md:py-16 bg-opora-menu overflow-hidden">
+    <section className="pb-0 pt-8 md:py-16 bg-opora-menu overflow-hidden">
       {/* Шапка */}
       <div className="flex justify-between items-center px-4 md:px-8 mb-10">
         <h2 className="text-2xl md:text-3xl font-medium text-opora-brown">Відгуки</h2>
-        <div className="hidden md:flex space-x-2">
-          <button onClick={() => scroll("left")} aria-label="Попередні відгуки" className="p-2 hover:opacity-70 transition-opacity text-opora-brown">
-            <SliderArrowLeftIcon className="w-5 h-5" />
-          </button>
-          <button onClick={() => scroll("right")} aria-label="Наступні відгуки" className="p-2 hover:opacity-70 transition-opacity text-opora-brown">
-            <SliderArrowRightIcon className="w-5 h-5" />
-          </button>
-        </div>
+        {comments.length > 1 && (
+          <div className="flex space-x-2">
+            <button onClick={() => scroll("left")} aria-label="Попередні відгуки" className="p-2 hover:opacity-70 transition-opacity text-opora-brown">
+              <SliderArrowLeftIcon className="w-5 h-5" />
+            </button>
+            <button onClick={() => scroll("right")} aria-label="Наступні відгуки" className="p-2 hover:opacity-70 transition-opacity text-opora-brown">
+              <SliderArrowRightIcon className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* МОБІЛЬНИЙ: слайдер по одному відгуку з крапками */}
@@ -162,7 +167,7 @@ export default function Reviews({ variation }: ReviewsProps) {
         <div
           ref={mobileSliderRef}
           onScroll={handleMobileScroll}
-          className="flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-4"
+          className="flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none pb-4"
         >
           {comments.map((comment) => (
             <div key={comment.id} className="w-full shrink-0 snap-center px-4">

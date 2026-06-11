@@ -1,7 +1,7 @@
-// Повноекранна галерея (модалка зі свайпом та мініатюрами)
 "use client";
 
 import { RefObject, UIEvent, WheelEvent } from "react";
+import Image from "next/image";
 
 interface FullscreenGalleryProps {
   images: string[];
@@ -26,7 +26,7 @@ export default function FullscreenGallery({
 }: FullscreenGalleryProps) {
   return (
     <div
-      className={`fixed inset-0 z-[100] bg-white flex flex-col h-[100dvh] transition-all duration-500 ease-in-out transform ${
+      className={`fixed inset-0 z-100 bg-white flex flex-col h-dvh transition-all duration-500 ease-in-out transform ${
         isOpen
           ? "opacity-100 translate-y-0 pointer-events-auto"
           : "opacity-0 translate-y-8 pointer-events-none"
@@ -50,11 +50,17 @@ export default function FullscreenGallery({
         ref={sliderRef}
         onScroll={onScroll}
         onWheel={onWheel}
-        className="flex-1 overflow-x-auto flex snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pt-16 md:pt-0"
+        className="flex-1 overflow-x-auto flex snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none pt-16 md:pt-0"
       >
         {images.map((img, idx) => (
-          <div key={idx} className="w-full shrink-0 snap-center h-full flex items-center justify-center p-4 md:p-12">
-            <img src={img} alt={`Gallery image ${idx + 1}`} className="max-w-full max-h-full object-contain" />
+          <div key={idx} className="relative w-full shrink-0 snap-center h-full">
+            <Image
+              src={img}
+              alt={`Фото товару ${idx + 1}`}
+              fill
+              sizes="100vw"
+              className="object-contain p-4 md:p-12"
+            />
           </div>
         ))}
       </div>
@@ -65,11 +71,11 @@ export default function FullscreenGallery({
           <button
             key={idx}
             onClick={() => onThumbClick(idx)}
-            className={`w-16 h-16 md:w-20 md:h-20 shrink-0 border-2 transition-all overflow-hidden ${
+            className={`relative w-16 h-16 md:w-20 md:h-20 shrink-0 border-2 transition-all overflow-hidden ${
               activeSlide === idx ? 'border-opora-brown scale-105' : 'border-transparent opacity-60 hover:opacity-100'
             }`}
           >
-            <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+            <Image src={img} alt={`Мініатюра ${idx + 1}`} fill sizes="80px" className="object-cover" />
           </button>
         ))}
       </div>

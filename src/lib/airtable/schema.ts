@@ -24,7 +24,6 @@ export const FIELDS = {
   product: {
     name: "Name",
     model: "Модель",
-    manufacturer: "Виробник",
     catalog: "Каталог",
     description: "Опис",
     minPrice: "Мінімальна Ціна",
@@ -62,6 +61,7 @@ export const FIELDS = {
   },
   spec: {
     name: "Назва",
+    filterable: "Фільтрується",
   },
   topProduct: {
     products: "Товари",
@@ -78,5 +78,8 @@ export const FIELDS = {
     phoneNumber: "Номер телефону",
     orderNumber: "Номер замовлення",
     orders: "Замовлення",
+    // Доставка «Нова Пошта» — створіть ці колонки (тип "Single line text") у таблиці "Запити"
+    deliveryCity: "Місто",
+    deliveryWarehouse: "Відділення",
   },
 } as const;

@@ -3,6 +3,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { SliderArrowLeftIcon, SliderArrowRightIcon } from "../ui/Icons";
 
 // Mock data - replace images with your actual URLs (e.g., AWS S3 or CMS links)
 const slides = [
@@ -39,6 +41,9 @@ const slides = [
 export default function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  const goPrev = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  const goNext = () => setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
@@ -58,9 +63,13 @@ export default function HeroSlider() {
           }`}
         >
           {/* Background Image */}
-          <div 
-            className="absolute inset-0 bg-center bg-cover bg-no-repeat"
-            style={{ backgroundImage: `url(${slide.image})` }}
+          <Image
+            src={slide.image}
+            alt=""
+            fill
+            sizes="100vw"
+            priority={index === 0}
+            className="object-cover object-center"
             aria-hidden="true"
           />
 
@@ -92,6 +101,22 @@ export default function HeroSlider() {
           </div>
         </div>
       ))}
+
+      {/* Стрілки навігації — зліва/справа, по центру по вертикалі (видимі і на мобільному) */}
+      <button
+        onClick={goPrev}
+        aria-label="Попередній слайд"
+        className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white transition-colors"
+      >
+        <SliderArrowLeftIcon className="w-5 h-5" />
+      </button>
+      <button
+        onClick={goNext}
+        aria-label="Наступний слайд"
+        className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white transition-colors"
+      >
+        <SliderArrowRightIcon className="w-5 h-5" />
+      </button>
 
       {/* Pagination Dots (Rendered outside the map so they don't fade out during transitions) */}
       <div className="absolute bottom-6 md:bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-3 z-20">

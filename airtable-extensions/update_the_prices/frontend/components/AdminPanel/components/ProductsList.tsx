@@ -11,6 +11,7 @@ interface ProductListProps {
   popularProductsRecords: Record[] | null;
   onNavigateToRequests: () => void;
   onNavigateToJsonUpload: () => void;
+  onNavigateToFilters: () => void;
   onCreateProduct: () => void;
   onEditProduct: (productId: string) => void;
 }
@@ -21,6 +22,7 @@ export default function ProductList({
   popularProductsRecords,
   onNavigateToRequests,
   onNavigateToJsonUpload,
+  onNavigateToFilters,
   onCreateProduct,
   onEditProduct,
 }: ProductListProps): JSX.Element {
@@ -76,6 +78,7 @@ export default function ProductList({
           <Box display="flex" style={{ gap: 8 }}>
             <Button icon="aiAssistant" onClick={onNavigateToRequests}>Заявки</Button>
             <Button icon="upload" onClick={onNavigateToJsonUpload}>JSON</Button>
+            <Button icon="filter" onClick={onNavigateToFilters}>Фільтри</Button>
             <Button variant="primary" icon="plus" onClick={onCreateProduct}>Додати товар</Button>
           </Box>
         </Box>

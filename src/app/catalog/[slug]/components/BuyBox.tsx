@@ -43,9 +43,11 @@ export default function BuyBox({
 
   return (
     <div>
-      <div className="flex justify-between items-start mb-6">
+      {/* На мобільному — вертикальний стек (щоб артикул не накладався на кольори);
+          на десктопі — назва/ціна зліва, вибір кольору справа */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-6">
         <div>
-          <h1 className="text-2xl font-medium tracking-wide uppercase mb-1">
+          <h1 className="text-2xl font-medium tracking-wide mb-1">
             {product.model || product.name}
           </h1>
           <p className="text-xs opacity-60 mb-4">Art: {activeVariant?.sku || 'N/A'}</p>
@@ -58,20 +60,21 @@ export default function BuyBox({
 
         {/* Вибір варіації */}
         {product.variants && product.variants.length > 0 && (
-          <div className="flex flex-col items-end gap-3 pt-2">
+          <div className="flex flex-col items-start md:items-end gap-3 md:pt-2">
             {optionGroups.map((optionGroup, groupIdx) => (
-              <div key={groupIdx} className="flex flex-col items-end gap-1">
+              <div key={groupIdx} className="flex flex-col items-start md:items-end gap-1">
                 <span className="text-xs text-gray-500 mb-1">
                   {activeVariant?.options[groupIdx]?.name ?? `Колір ${groupIdx + 1}`}
                 </span>
-                <div className="flex items-center gap-2 flex-wrap justify-end">
+                {/* На мобільному кружечки більші й переносяться у 2 ряди */}
+                <div className="flex items-center gap-2.5 md:gap-2 flex-wrap justify-start md:justify-end">
                   {optionGroup.map((opt) => {
                     const available = isOptionAvailable(groupIdx, opt.value);
                     return (
                       <button
                         key={opt.value}
                         onClick={() => onOptionSelect(groupIdx, opt.value)}
-                        className={`relative w-6 h-6 rounded-full transition-all duration-200 overflow-hidden ${
+                        className={`relative w-8 h-8 md:w-6 md:h-6 rounded-full transition-all duration-200 overflow-hidden shrink-0 ${
                           activeVariant?.options[groupIdx]?.value === opt.value
                             ? 'ring-1 ring-gray-900 ring-offset-2 ring-offset-white scale-110'
                             : 'ring-1 ring-gray-900/60 ring-offset-0 hover:ring-gray-900 hover:scale-105'

@@ -5,6 +5,9 @@ import Categories from "@/components/layout/Categories";
 import HeroSlider from "@/components/layout/Slider";
 import { getTopProducts } from "@/lib";
 
+// Головна — статична з регенерацією раз на годину (ISR).
+export const revalidate = 3600;
+
 export default async function Home() {
 	const topProducts = await getTopProducts();
 

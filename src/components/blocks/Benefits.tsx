@@ -34,7 +34,7 @@ export default function Benefits() {
               className="flex items-center gap-4 md:gap-5 text-opora-brown hover:opacity-80 transition-opacity"
             >
               {/* Блок іконки */}
-              <div className="flex-shrink-0 flex items-center justify-center text-opora-brown">
+              <div className="shrink-0 flex items-center justify-center text-opora-brown">
                 {item.icon}
               </div>
               

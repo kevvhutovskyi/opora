@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRightIcon } from "../ui/Icons";
 
 const categories = [
@@ -42,9 +43,12 @@ export default function Categories() {
             className={`group relative w-full h-[350px] md:h-[400px] overflow-hidden bg-opora-beige block ${category.colSpan}`}
           >
             {/* Background Image */}
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-              style={{ backgroundImage: `url(${category.image})` }}
+            <Image
+              src={category.image}
+              alt={category.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
             />
             
             {/* Gradient Overlay for text readability */}

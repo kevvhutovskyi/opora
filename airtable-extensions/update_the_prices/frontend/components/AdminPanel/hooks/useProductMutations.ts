@@ -4,7 +4,6 @@ import { toLinks } from '../utils';
 
 interface ProductFields {
   model: string;
-  manufacturer: string;
   description: string;
 }
 
@@ -24,7 +23,6 @@ export function useProductMutations() {
 
     const airtableFields = {
       [FIELDS.product.model]: fields.model,
-      [FIELDS.product.manufacturer]: fields.manufacturer,
       [FIELDS.product.description]: fields.description,
     };
 

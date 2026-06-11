@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { MenuIcon, CartIcon, OporaLogo } from "../ui/Icons";
 import Drawer from "./Drawer";
 import { useCartStore } from "@/store/cartStore";
-import { ClientRequest, generateRequestNumber } from "@/lib";
+import { ClientRequest, generateRequestNumber, formatUaPhone } from "@/lib";
+import { STORE } from "@/lib/site";
+import NovaPoshtaDelivery, { DeliverySelection } from "@/components/blocks/NovaPoshtaDelivery";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const [isVisible, setIsVisible] = useState(true);
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -17,7 +19,8 @@ export default function Header() {
 
   // Checkout State
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'form' | 'success'>('cart');
-  const [formData, setFormData] = useState({ name: '', phone: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '+380' });
+  const [delivery, setDelivery] = useState<DeliverySelection | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
 
@@ -28,11 +31,17 @@ export default function Header() {
   const getTotalItems = useCartStore((state) => state.getTotalItems);
   const clearCart = useCartStore((state) => state.clearCart);
 
+  // Стан відкриття кошика — глобальний (щоб CartToast міг його відкривати)
+  const isCartOpen = useCartStore((state) => state.isCartOpen);
+  const openCart = useCartStore((state) => state.openCart);
+  const closeCart = useCartStore((state) => state.closeCart);
+
   const handleCloseCart = () => {
-    setIsCartOpen(false);
+    closeCart();
     setTimeout(() => {
       setCheckoutStep('cart');
-      setFormData({ name: '', phone: '' });
+      setFormData({ name: '', phone: '+380' });
+      setDelivery(null);
     }, 300); // Reset after drawer transition finishes
   };
 
@@ -49,6 +58,8 @@ export default function Header() {
       phoneNumber: formData.phone,
       // email: formData.email, // Розкоментуйте, якщо додасте поле email у форму
       orderNumber: newOrderNumber,
+      deliveryCity: delivery?.cityName,
+      deliveryWarehouse: delivery?.warehouseName,
       orders: [
         ...cartItems,
       ]
@@ -108,9 +119,9 @@ export default function Header() {
           }
         `}
       >
-        <button 
-          onClick={() => setIsCartOpen(true)} 
-          aria-label="Відкрити кошик" 
+        <button
+          onClick={openCart}
+          aria-label="Відкрити кошик"
           className="hover:opacity-70 transition-opacity p-2 -ml-2 relative"
         >
           <CartIcon className="w-6 h-6" />
@@ -143,44 +154,39 @@ export default function Header() {
       <Drawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} position="left">
         <div className="flex flex-col h-full justify-between pb-6">
           <div className="flex flex-col items-center text-center mt-12 space-y-12">
-            
-            {/* Блок: Покупцям */}
-            <div>
-              <h3 className="font-bold text-lg mb-6">Покупцям</h3>
-              <ul className="space-y-4 text-base">
+
+            {/* Навігація */}
+            <nav>
+              <ul className="space-y-4 text-xl font-medium">
                 <li>
-                  <Link href="#" className="hover:opacity-70 transition-opacity">
-                    Оплата та доставка
+                  <Link href="/" onClick={() => setIsMenuOpen(false)} className="hover:opacity-70 transition-opacity">
+                    Головна
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:opacity-70 transition-opacity">
-                    Обмін та повернення
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:opacity-70 transition-opacity">
-                    Гарантія якості
+                  <Link href="/catalog" onClick={() => setIsMenuOpen(false)} className="hover:opacity-70 transition-opacity">
+                    Каталог
                   </Link>
                 </li>
               </ul>
-            </div>
+            </nav>
 
-            {/* Блок: Контакти */}
+            {/* Блок: Контакти + Адреса */}
             <div>
               <h3 className="font-bold text-lg mb-6">Контакти</h3>
               <ul className="space-y-4 text-base">
                 <li>
-                  <a href="tel:+380000000000" className="hover:opacity-70 transition-opacity">
-                    [Номер телефону]
+                  <a href={`tel:+${STORE.phoneRaw}`} className="hover:opacity-70 transition-opacity">
+                    {STORE.phoneDisplay}
                   </a>
                 </li>
                 <li>
-                  <a href="mailto:info@opora.ua" className="hover:opacity-70 transition-opacity">
-                    [Email]
+                  <a href={`mailto:${STORE.email}`} className="hover:opacity-70 transition-opacity">
+                    {STORE.email}
                   </a>
                 </li>
-                <li>Щодня з 10:00 до 20:00</li>
+                <li>{STORE.addressLine}, {STORE.city}</li>
+                <li>{STORE.hours}</li>
               </ul>
             </div>
           </div>
@@ -201,15 +207,24 @@ export default function Header() {
             <>
               <div className="flex-1 overflow-y-auto pr-2 space-y-6">
                 {cartItems.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center justify-center h-full gap-6">
                     <p className="text-lg">Ваш кошик порожній</p>
+                    <Link
+                      href="/catalog"
+                      onClick={handleCloseCart}
+                      className="py-3 px-8 bg-opora-brown text-white font-medium hover:opacity-90 transition-opacity"
+                    >
+                      До покупок
+                    </Link>
                   </div>
                 ) : (
                   cartItems.map((item) => (
                     <div key={item.id} className="flex gap-4 items-center">
-                      <div className="w-20 h-20 bg-opora-softBeige bg-cover bg-center rounded-sm flex-shrink-0" style={{ backgroundImage: `url(${item.image})` }}/>
+                      <div className="relative w-20 h-20 bg-opora-softBeige rounded-sm shrink-0 overflow-hidden">
+                        <Image src={item.image} alt={item.title} fill sizes="80px" className="object-cover object-center" />
+                      </div>
                       <div className="flex-1">
-                        <h4 className="font-medium uppercase leading-tight mb-1">{item.title}</h4>
+                        <h4 className="font-medium leading-tight mb-1">{item.title}</h4>
                         <div className="flex items-center gap-2 mb-1">
                           {item.options.map((opt, i) => (
                             <span
@@ -257,29 +272,37 @@ export default function Header() {
           {checkoutStep === 'form' && (
             <div className="flex flex-col h-full items-center justify-center text-center">
               <h3 className="font-bold text-2xl mb-2">Визначились з замовленням?</h3>
-              <p className="text-lg font-light mb-8 max-w-[250px]">
+              <p className="text-lg font-light mb-8 max-w-62.5">
                 Заповніть форму і ми вам передзвонимо!
               </p>
               
               <form onSubmit={handleCheckoutSubmit} className="w-full max-w-sm space-y-6">
-                <input
-                  type="text"
-                  required
-                  placeholder="Ваше ім'я"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border border-opora-brown p-4 text-lg bg-transparent focus:outline-none focus:ring-1 focus:ring-opora-brown placeholder:text-opora-brown/50"
-                />
-                <input
-                  type="tel"
-                  required
-                  placeholder="+380 XX XXX XX XX"
-                  pattern="^\+?[1-9]\d{7,14}$"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full border border-opora-brown p-4 text-lg bg-transparent focus:outline-none focus:ring-1 focus:ring-opora-brown placeholder:text-opora-brown/50"
-                />
-                
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ваше ім'я"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full border border-opora-brown p-4 pr-8 text-lg bg-transparent focus:outline-none focus:ring-1 focus:ring-opora-brown placeholder:text-opora-brown/50"
+                  />
+                  <span className="absolute top-3 right-3 text-red-500 text-lg leading-none pointer-events-none">*</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    required
+                    placeholder="+380 XX XXX XX XX"
+                    pattern="^\+380\d{9}$"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: formatUaPhone(e.target.value) })}
+                    className="w-full border border-opora-brown p-4 pr-8 text-lg bg-transparent focus:outline-none focus:ring-1 focus:ring-opora-brown placeholder:text-opora-brown/50"
+                  />
+                  <span className="absolute top-3 right-3 text-red-500 text-lg leading-none pointer-events-none">*</span>
+                </div>
+
+                <NovaPoshtaDelivery value={delivery} onChange={setDelivery} />
+
                 <div className="pt-4">
                   <button 
                     type="submit" 
@@ -309,7 +332,7 @@ export default function Header() {
                   Замовлення №{orderNumber}
                 </p>
               )}
-              <p className="text-lg font-light mb-8 max-w-[250px]">
+              <p className="text-lg font-light mb-8 max-w-62.5">
                 Наш менеджер зв'яжеться з вами найближчим часом для підтвердження.
               </p>
               <button

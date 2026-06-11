@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     // Парсимо JSON з тіла запиту
     const body = await request.json() as ClientRequest;
-    const { name, phoneNumber, orders } = body;
+    const { name, phoneNumber, orders, deliveryCity, deliveryWarehouse } = body;
 
     // Базова валідація
     if (!name || !phoneNumber) {
@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
           [FIELDS.request.name]: name,
           [FIELDS.request.phoneNumber]: phoneNumber || '',
           [FIELDS.request.orderNumber]: orderNumber,
+          ...(deliveryCity && { [FIELDS.request.deliveryCity]: deliveryCity }),
+          ...(deliveryWarehouse && { [FIELDS.request.deliveryWarehouse]: deliveryWarehouse }),
           ...(linkedProductIds.length > 0 && { [FIELDS.request.orders]: linkedProductIds })
         }
       }
@@ -69,11 +71,19 @@ export async function POST(request: NextRequest) {
           productsListText += `   ${itemQuantity} шт. x ${item.price.toLocaleString('uk-UA')} ₴ = <b>${itemTotal.toLocaleString('uk-UA')} ₴</b>\n`;
         });
 
-        messageText = 
+        const deliveryText =
+          deliveryCity || deliveryWarehouse
+            ? `\n\n🚚 <b>Доставка (Нова Пошта):</b>\n` +
+              (deliveryCity ? `   🏙 ${deliveryCity}\n` : "") +
+              (deliveryWarehouse ? `   🏤 ${deliveryWarehouse}\n` : "")
+            : "";
+
+        messageText =
           `🎉 <b>Нове замовлення!</b>\n` +
           `🔖 <b>Замовлення №:</b> ${orderNumber}\n\n` +
           `👤 <b>Ім'я:</b> ${name}\n` +
           `📞 <b>Телефон:</b> ${phoneNumber}` +
+          deliveryText +
           productsListText +
           `\n💰 <b>Загальна сума до сплати:</b> ${totalSum.toLocaleString('uk-UA')} ₴`;
       }

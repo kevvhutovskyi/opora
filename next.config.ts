@@ -2,11 +2,21 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   typescript: {
-    // Warning: Leaving this as 'true' in production is dangerous. 
-    // It's highly recommended to fix TS errors before a prod build, 
+    // Warning: Leaving this as 'true' in production is dangerous.
+    // It's highly recommended to fix TS errors before a prod build,
     // otherwise runtime crashes will slip through.
-    ignoreBuildErrors: true, 
-    
+    ignoreBuildErrors: true,
+
+  },
+  images: {
+    // Дозволені зовнішні хости для next/image.
+    // R2 (фото товарів), Airtable (fallback), picsum (тимчасові слайди героя).
+    remotePatterns: [
+      { protocol: "https", hostname: "**.r2.dev" },
+      { protocol: "https", hostname: "**.airtableusercontent.com" },
+      { protocol: "https", hostname: "picsum.photos" },
+    ],
+    formats: ["image/avif", "image/webp"],
   },
   async headers() {
     return [

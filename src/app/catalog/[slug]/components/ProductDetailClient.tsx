@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, UIEvent, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useCartStore } from "@/store/cartStore";
 import { toHue } from "@/lib/utils";
 import Reviews from "@/components/blocks/Reviews";
@@ -9,8 +10,10 @@ import ProductGallery from "./ProductGallery";
 import BuyBox from "./BuyBox";
 import AssemblyVideo from "./AssemblyVideo";
 import ProductAccordions from "./ProductAccordions";
-import FullscreenGallery from "./FullscreenGallery";
 import CartToast from "./CartToast";
+
+// Повноекранна галерея потрібна лише після кліку — виносимо в окремий чанк.
+const FullscreenGallery = dynamic(() => import("./FullscreenGallery"), { ssr: false });
 
 export default function ProductDetailClient({ product }: { product: Product }) {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -29,6 +32,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   // Стан для галереї
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenSlide, setFullscreenSlide] = useState(0);
+  // Монтуємо галерею лише після першого відкриття (потім лишаємо для анімації закриття).
+  const [galleryMounted, setGalleryMounted] = useState(false);
 
   // Чи видно шапку — щоб sticky-блок підлаштовував відступ зверху (та сама логіка, що в Header)
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -176,6 +181,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
   const openGallery = (index: number) => {
     setFullscreenSlide(index);
+    setGalleryMounted(true);
     setIsFullscreen(true);
   };
 
@@ -203,7 +209,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           unique.push(opt);
         }
       }
-      unique.sort((a, b) => toHue(a.value) - toHue(b.value));
+      // Зворотний порядок сортування за відтінком (на запит)
+      unique.sort((a, b) => toHue(b.value) - toHue(a.value));
       return unique;
     });
   };
@@ -273,20 +280,22 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       </div>
 
       {/* ВІДГУКИ — на всю ширину під сіткою */}
-      <div className="mb-16 px-8 md:px-12">
+      <div className="pb-12 md:pb-0 px-8 md:px-12">
         <Reviews variation={product.model || product.name} />
       </div>
 
-      <FullscreenGallery
-        images={currentImages}
-        isOpen={isFullscreen}
-        activeSlide={fullscreenSlide}
-        sliderRef={fullscreenSliderRef}
-        onClose={() => setIsFullscreen(false)}
-        onScroll={handleFullscreenScroll}
-        onWheel={handleWheelScroll}
-        onThumbClick={scrollToFullscreenImage}
-      />
+      {galleryMounted && (
+        <FullscreenGallery
+          images={currentImages}
+          isOpen={isFullscreen}
+          activeSlide={fullscreenSlide}
+          sliderRef={fullscreenSliderRef}
+          onClose={() => setIsFullscreen(false)}
+          onScroll={handleFullscreenScroll}
+          onWheel={handleWheelScroll}
+          onThumbClick={scrollToFullscreenImage}
+        />
+      )}
 
       <CartToast toast={toast} onClose={() => setToast(null)} />
 

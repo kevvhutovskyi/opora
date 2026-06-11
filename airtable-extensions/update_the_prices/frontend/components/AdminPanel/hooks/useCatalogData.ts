@@ -27,6 +27,7 @@ export function useCatalogData() {
     tables: {
       variantsTable,
       optionsTable,
+      specsTable,
       requestsTable,
     },
     records: {

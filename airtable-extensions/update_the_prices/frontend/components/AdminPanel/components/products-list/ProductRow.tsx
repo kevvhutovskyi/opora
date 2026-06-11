@@ -30,9 +30,6 @@ export function ProductRow({ product, variantCount, isPopular, onEdit }: Product
         <Box display="flex" alignItems="center" style={{ gap: 12 }}>
           <Box display="flex" alignItems="center">
             <Icon name="cube" size={12} marginRight={1} />
-            <Text textColor="light" size="small">
-              {product.getCellValueAsString(FIELDS.product.manufacturer) || 'Виробник не вказано'}
-            </Text>
           </Box>
           <Badge tone={variantCount > 0 ? 'info' : 'neutral'}>{variantCount} варіацій</Badge>
         </Box>

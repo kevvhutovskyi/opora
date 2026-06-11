@@ -1,21 +1,52 @@
-// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Rubik } from "next/font/google";
-import "./globals.css"; // 1. ЦЕЙ ІМПОРТ Є ОБОВ'ЯЗКОВИМ! Без нього Tailwind не завантажиться.
+import "./globals.css"; // ЦЕЙ ІМПОРТ Є ОБОВ'ЯЗКОВИМ! Без нього Tailwind не завантажиться.
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import FloatingMessenger from "@/components/layout/FloatingMessenger";
+import JsonLd from "@/components/seo/JsonLd";
+import { SITE_URL, SITE_NAME, SITE_DESCRIPTION, DEFAULT_OG_IMAGE } from "@/lib/site";
 import Providers from "./providers";
 
-// 2. Ініціалізуємо шрифт з правильною CSS-змінною
-const rubik = Rubik({ 
+const rubik = Rubik({
   subsets: ["latin", "cyrillic"],
-  variable: "--font-rubik", // Ця змінна має точно збігатися з тією, що у вашому tailwind.config.ts
-  display: "swap",
+  variable: "--font-rubik",
 });
 
 export const metadata: Metadata = {
-  title: "OPORA",
-  description: "Мінімалістичні крісла та меблі",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} — мінімалістичні крісла та меблі`,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  keywords: ["меблі", "крісла", "дизайнерські меблі", "OPORA", "мінімалізм"],
+  applicationName: SITE_NAME,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "uk_UA",
+    siteName: SITE_NAME,
+    url: SITE_URL,
+    title: `${SITE_NAME} — мінімалістичні крісла та меблі`,
+    description: SITE_DESCRIPTION,
+    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: SITE_NAME }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — мінімалістичні крісла та меблі`,
+    description: SITE_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE],
+  },
+  robots: { index: true, follow: true },
+};
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
 };
 
 export default function RootLayout({
@@ -24,14 +55,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // 3. Додаємо змінну шрифту в html або body
     <html lang="uk" className={`${rubik.variable}`}>
-      {/* 4. Задаємо font-sans (який тепер посилається на Rubik) та базовий колір тексту */}
       <body className="font-sans text-opora-brown antialiased" suppressHydrationWarning>
+        <JsonLd data={organizationJsonLd} />
         <Providers>
           <Header />
           {children}
           <Footer />
+          <FloatingMessenger />
         </Providers>
       </body>
     </html>

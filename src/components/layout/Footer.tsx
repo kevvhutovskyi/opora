@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { ChairLogo } from "../ui/Icons";
 import Toast from "../ui/Toast";
-import { generateRequestNumber } from "@/lib";
+import { generateRequestNumber, formatUaPhone } from "@/lib";
+import { STORE } from "@/lib/site";
 
 export default function Footer() {
-  const [formData, setFormData] = useState({ name: "", phone: "" });
+  const [formData, setFormData] = useState({ name: "", phone: "+380" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; subMessage?: string } | null>(null);
 
@@ -36,7 +37,7 @@ export default function Footer() {
 
       if (response.ok) {
         showToast("Заявку прийнято! Ми зателефонуємо найближчим часом.", `Заявка №${orderNumber}`);
-        setFormData({ name: "", phone: "" });
+        setFormData({ name: "", phone: "+380" });
       } else {
         showToast("Сталася помилка. Спробуйте пізніше.");
       }
@@ -54,13 +55,13 @@ export default function Footer() {
       {/* LEFT: Map — no padding, full height, ~45% width */}
       <div className="relative h-64 lg:h-auto lg:w-[45%] shrink-0 m-5">
         <iframe
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2573.232598375438!2d24.015112576916515!3d49.83810247148003!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x473add7bceb83e6b%3A0xc39f88c3af37d39!2sStepana%20Bandery%20St%2C%2012%2C%20L&#39;viv%2C%20L&#39;vivs&#39;ka%20oblast%2C%20Ukraine%2C%2079000!5e0!3m2!1sen!2sus!4v1716900000000!5m2!1sen!2sus"
+          src={`https://maps.google.com/maps?q=${encodeURIComponent(`${STORE.addressLine}, ${STORE.city}`)}&z=16&output=embed`}
           className="absolute inset-0 w-full h-full"
           style={{ border: 0, display: 'block' }}
           allowFullScreen={false}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
-          title="OPORA Магазин Львів"
+          title={`OPORA Магазин — ${STORE.addressLine}, ${STORE.city}`}
         />
       </div>
 
@@ -79,23 +80,29 @@ export default function Footer() {
             Залиште заявку і наш менеджер зв'яжеться з вами
           </p>
           <form onSubmit={handleFormSubmit} className="flex flex-col gap-3 max-w-md">
-            <input
-              type="text"
-              placeholder="Ваше ім'я"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full bg-transparent border border-white/40 px-4 py-3 text-white placeholder:text-white/60 focus:outline-none focus:border-white transition-colors"
-            />
-            <input
-              type="tel"
-              placeholder="+380 XX XXX XX XX"
-              pattern="^\+?[1-9]\d{7,14}$"
-              required
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full bg-transparent border border-white/40 px-4 py-3 text-white placeholder:text-white/60 focus:outline-none focus:border-white transition-colors"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Ваше ім'я"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full bg-transparent border border-white/40 px-4 py-3 pr-8 text-white placeholder:text-white/60 focus:outline-none focus:border-white transition-colors"
+              />
+              <span className="absolute top-2.5 right-3 text-red-400 text-lg leading-none pointer-events-none">*</span>
+            </div>
+            <div className="relative">
+              <input
+                type="tel"
+                placeholder="+380 XX XXX XX XX"
+                pattern="^\+380\d{9}$"
+                required
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: formatUaPhone(e.target.value) })}
+                className="w-full bg-transparent border border-white/40 px-4 py-3 pr-8 text-white placeholder:text-white/60 focus:outline-none focus:border-white transition-colors"
+              />
+              <span className="absolute top-2.5 right-3 text-red-400 text-lg leading-none pointer-events-none">*</span>
+            </div>
             <button
               type="submit"
               disabled={isSubmitting}
@@ -123,12 +130,13 @@ export default function Footer() {
               <h3 className="text-lg font-medium mb-5 tracking-wide uppercase">Контакти</h3>
               <div className="space-y-3 font-light text-white/80">
                 <p>
-                  <a href="tel:+380000000000" className="hover:text-white transition-colors">[Номер телефону]</a>
+                  <a href={`tel:+${STORE.phoneRaw}`} className="hover:text-white transition-colors">{STORE.phoneDisplay}</a>
                 </p>
                 <p>
-                  <a href="mailto:info@opora.ua" className="hover:text-white transition-colors">info@opora.ua</a>
+                  <a href={`mailto:${STORE.email}`} className="hover:text-white transition-colors">{STORE.email}</a>
                 </p>
-                <p>Щодня з 10:00 до 20:00</p>
+                <p>{STORE.addressLine}, {STORE.city}</p>
+                <p>{STORE.hours}</p>
               </div>
             </div>
 

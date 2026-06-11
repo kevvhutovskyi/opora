@@ -50,7 +50,7 @@ export default function ProductAccordions({
           <span>Характеристики</span>
           <span className="transform transition-transform duration-300">{toggleIcon('chars')}</span>
         </button>
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openSections.includes('chars') ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openSections.includes('chars') ? 'max-h-200 opacity-100' : 'max-h-0 opacity-0'}`}>
           <div className="pb-6 pt-2">
             <ul className="flex flex-col">
               {product.specifications?.map((spec, idx) => {
@@ -87,7 +87,7 @@ export default function ProductAccordions({
           <span>Збірка</span>
           <span className="transform transition-transform duration-300">{toggleIcon('assembly')}</span>
         </button>
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openSections.includes('assembly') ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openSections.includes('assembly') ? 'max-h-75 opacity-100' : 'max-h-0 opacity-0'}`}>
           <div className="pb-8 pt-2">
             <p className="text-stone-600 mb-6 text-base">
               Завантажте інструкцію по збірці у форматі PDF для детального ознайомлення.

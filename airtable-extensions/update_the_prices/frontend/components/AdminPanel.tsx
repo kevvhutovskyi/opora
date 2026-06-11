@@ -5,11 +5,12 @@ import ProductEditor from './AdminPanel/components/ProductEditor';
 import VariantEditor from './AdminPanel/components/VariantEditor';
 import RequestsCRM from './AdminPanel/components/RequestsCRM';
 import JsonUploader from './AdminPanel/components/JsonUploader';
+import FiltersConfig from './AdminPanel/components/FiltersConfig';
 import { useCatalogData } from './AdminPanel/hooks/useCatalogData';
 import { FIELDS, UI } from './AdminPanel/constants';
 import { isLinkedTo } from './AdminPanel/utils';
 
-type View = 'list' | 'edit_product' | 'edit_variant' | 'requests' | 'json_upload';
+type View = 'list' | 'edit_product' | 'edit_variant' | 'requests' | 'json_upload' | 'filters_config';
 
 export default function AdminPanel(): JSX.Element {
   const { isReady, tables, records } = useCatalogData();
@@ -17,6 +18,7 @@ export default function AdminPanel(): JSX.Element {
   const {
     variantsTable = null,
     optionsTable = null,
+    specsTable = null,
     requestsTable = null,
   } = tables || {};
 
@@ -69,6 +71,7 @@ export default function AdminPanel(): JSX.Element {
             popularProductsRecords={popularProductsRecords}
             onNavigateToRequests={() => setView('requests')}
             onNavigateToJsonUpload={() => setView('json_upload')}
+            onNavigateToFilters={() => setView('filters_config')}
             onCreateProduct={() => {
               setSelectedProductId(null);
               setView('edit_product');
@@ -116,6 +119,14 @@ export default function AdminPanel(): JSX.Element {
         )}
 
         {view === 'json_upload' && <JsonUploader onGoBack={() => setView('list')} />}
+
+        {view === 'filters_config' && specsTable && (
+          <FiltersConfig
+            specsRecords={specsRecords}
+            specsTable={specsTable}
+            onBack={() => setView('list')}
+          />
+        )}
 
         {view === 'requests' && (
           <RequestsCRM
