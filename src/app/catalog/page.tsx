@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import CatalogClient from "./CatalogClient";
-import { getFilteredCatalog, getFilterOptions } from "@/lib";
+import { getCatalogHeroImage, getFilteredCatalog, getFilterOptions } from "@/lib";
 
 export const metadata: Metadata = {
   title: "Каталог",
@@ -34,9 +34,10 @@ export default async function CatalogPage({
 
   const categories = ["Chair"];
 
-  const [products, filterOptions] = await Promise.all([
+  const [products, filterOptions, catalogHeroImage] = await Promise.all([
     getFilteredCatalog({ type, sort, seatColors, legColors, tableColors, specFilters }),
-    getFilterOptions()
+    getFilterOptions(),
+    getCatalogHeroImage()
   ]);
 
   return (
@@ -47,7 +48,7 @@ export default async function CatalogPage({
         </div>
       }
     >
-      <CatalogClient initialProducts={products} filterOptions={filterOptions} categories={categories} />
+      <CatalogClient initialProducts={products} filterOptions={filterOptions} categories={categories} heroImage={catalogHeroImage} />
     </Suspense>
   );
 }

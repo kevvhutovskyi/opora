@@ -4,37 +4,42 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRightIcon } from "../ui/Icons";
 
-const categories = [
+const CATEGORIES = [
   {
     id: 1,
     title: "Стільці",
-    image: "https://picsum.photos/id/230/800/600",
+    mockImage: "https://picsum.photos/id/230/800/600",
     link: "/catalog?type=Chair",
     colSpan: "md:col-span-1",
   },
   {
     id: 2,
     title: "Столи",
-    image: "https://picsum.photos/id/231/800/600",
+    mockImage: "https://picsum.photos/id/231/800/600",
     link: "/catalog?type=Table",
     colSpan: "md:col-span-1",
   },
   {
     id: 3,
     title: "Лампи",
-    image: "https://picsum.photos/id/232/1600/600",
+    mockImage: "https://picsum.photos/id/232/1600/600",
     link: "/catalog?type=Nightstand",
-    colSpan: "md:col-span-2", // Stretches across both columns on desktop
+    colSpan: "md:col-span-2",
   },
 ];
 
-export default function Categories() {
+type CategoriesProps = {
+  // Map назваКатегорії → url із таблиці «Банери». Якщо немає — мок-зображення.
+  images?: Record<string, string>;
+};
+
+export default function Categories({ images = {} }: CategoriesProps) {
+  const categories = CATEGORIES.map((c) => ({
+    ...c,
+    image: images[c.title] || c.mockImage,
+  }));
   return (
     <section className="w-full bg-opora-menu py-4">
-      {/* 
-        Mobile: 1 column grid (stacks vertically)
-        Desktop: 2 column grid
-      */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-1 px-4 md:px-8">
         {categories.map((category) => (
           <Link

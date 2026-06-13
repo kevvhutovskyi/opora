@@ -1,7 +1,3 @@
-// Серверний клієнт Нової Пошти.
-// Працює лише на сервері (в route handlers) — API-ключ ніколи не потрапляє в браузер.
-// Достатньо виставити змінну середовища NOVA_POSHTA_API_KEY — і все запрацює.
-
 const NP_ENDPOINT = "https://api.novaposhta.ua/v2.0/json/";
 
 export interface NpCity {
@@ -23,7 +19,6 @@ interface NpApiResponse<T> {
   warnings: string[];
 }
 
-// Базовий виклик API Нової Пошти
 async function npRequest<T>(
   modelName: string,
   calledMethod: string,
@@ -38,7 +33,6 @@ async function npRequest<T>(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ apiKey, modelName, calledMethod, methodProperties }),
-    // Нова Пошта не має CDN-кешу для нас — кешуємо самі на короткий час
     next: { revalidate: 0 },
   });
 
@@ -64,13 +58,8 @@ export async function searchCities(query: string): Promise<NpCity[]> {
   return data.map((c) => ({ ref: c.Ref, name: c.Description, area: c.AreaDescription }));
 }
 
-// Мінімальна вантажопідйомність відділення, яку приймаємо (кг).
-// Відсікає поштомати та малоформатні відділення (до 5 / 30-35 кг).
 const MIN_WAREHOUSE_WEIGHT_KG = 200;
 
-// Список відділень обраного міста (з опціональним фільтром за номером/назвою).
-// Повертаємо ЛИШЕ повноцінні відділення, що приймають відправлення від 200 кг —
-// без поштоматів і без малих відділень (5 / 35 кг).
 export async function getWarehouses(cityRef: string, query = ""): Promise<NpWarehouse[]> {
   if (!cityRef) return [];
   const props: Record<string, string> = { CityRef: cityRef, Limit: "500" };
@@ -87,9 +76,19 @@ export async function getWarehouses(cityRef: string, query = ""): Promise<NpWare
     .filter((w) => {
       // Виключаємо поштомати
       if (w.CategoryOfWarehouse === "Postomat") return false;
-      // Лишаємо лише ті, що приймають відправлення вагою >= 200 кг
-      const maxWeight = Number(w.TotalMaxWeightAllowed ?? 0);
-      return maxWeight >= MIN_WAREHOUSE_WEIGHT_KG;
+
+      // Ліміт ваги Нова Пошта вказує в самій назві відділення, напр.:
+      //   "Відділення №8 (до 30 кг на одне місце)"  — малоформатне
+      //   "Відділення №21 (до 200 кг)"              — приймає важкі
+      //   "Відділення №1: вул. Городоцька, 359"     — вантажне, без ліміту
+      // Структурне поле TotalMaxWeightAllowed для малих відділень = 0,
+      // тож відрізнити їх від вантажних можна лише за назвою.
+      const limitMatch = w.Description.match(/до\s+(\d+)\s*кг/i);
+      if (limitMatch && Number(limitMatch[1]) < MIN_WAREHOUSE_WEIGHT_KG) {
+        return false; // напр. "до 30 кг" — відсікаємо
+      }
+      // Лишаються: відділення з лімітом >= 200 кг та вантажні (ліміт у назві не вказано).
+      return true;
     })
     .map((w) => ({ ref: w.Ref, name: w.Description, number: w.Number }));
 }

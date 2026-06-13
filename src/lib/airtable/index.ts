@@ -8,6 +8,7 @@ export * from './tables';
 export * from './comments';
 export * from './requests';
 export * from './catalog';
+export * from './banners';
 
 export const airtableBase = new Airtable({
   apiKey: process.env.AIRTABLE_API_KEY!,

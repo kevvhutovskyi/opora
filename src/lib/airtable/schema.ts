@@ -10,6 +10,14 @@ export const TABLES = {
   requests: "Запити",
   topProducts: "Найпопулярніші Товари",
   comments: "Коментарі",
+  banners: "Банери",
+} as const;
+
+// Значення поля «Тип» у таблиці «Банери» (single select).
+export const BANNER_TYPES = {
+  slider: "Слайдер",
+  catalog: "Каталог",
+  category: "Категорія",
 } as const;
 
 // Окремі таблиці товарів за категорією (використовує getProducts).
@@ -81,5 +89,12 @@ export const FIELDS = {
     // Доставка «Нова Пошта» — створіть ці колонки (тип "Single line text") у таблиці "Запити"
     deliveryCity: "Місто",
     deliveryWarehouse: "Відділення",
+  },
+  banner: {
+    name: "Назва",
+    type: "Тип",
+    image: "Зображення",
+    order: "Порядок",
+    active: "Активний",
   },
 } as const;

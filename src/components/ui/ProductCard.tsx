@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { CatalogProductDetails, VariationImage } from '@/lib';
 import { toHue } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics/umami';
 
 export default function ProductCard({
   product,
@@ -73,9 +74,10 @@ export default function ProductCard({
     <div className="shrink-0 w-full group">
       
       {/* Product Link Area (Image + Text) */}
-      <Link 
+      <Link
         href={product.href}
         className="block w-full"
+        onClick={() => trackEvent("Клік по товару", { name: product.name, href: product.href })}
       >
         {/* Image Container with Hover Crossfade */}
         <div className="relative aspect-square w-full overflow-hidden mb-4 bg-opora-softBeige rounded-sm shadow-sm transition-shadow duration-300 group-hover:shadow-md">
@@ -116,7 +118,13 @@ export default function ProductCard({
                 <button
                   key={variation.id}
                   onMouseEnter={() => setActiveVariation(variation)}
-                  onClick={() => setActiveVariation(variation)}
+                  onClick={() => {
+                    setActiveVariation(variation);
+                    trackEvent("Вибір кольору", {
+                      product: product.name,
+                      color: variation.allHexes.map((h: { name: string }) => h.name).join(" / "),
+                    });
+                  }}
                   className={`rounded-full transition-all duration-300 focus:outline-none ${
                     isActive
                       ? 'scale-110 ring-1 ring-opora-brown ring-offset-2'
@@ -142,7 +150,11 @@ export default function ProductCard({
         )}
 
         {/* Product Text Details */}
-        <Link href={product.href} className="block">
+        <Link
+          href={product.href}
+          className="block"
+          onClick={() => trackEvent("Клік по товару", { name: product.name, href: product.href })}
+        >
           <h3 className="text-xl md:text-2xl font-medium text-opora-brown mb-1">
             {product.name}
           </h3>

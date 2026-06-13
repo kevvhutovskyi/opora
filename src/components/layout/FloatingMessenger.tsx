@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { STORE } from "@/lib/site";
+import { trackEvent } from "@/lib/analytics/umami";
 
 // Іконки месенджерів (бренд-кольори лишаємо як заливку)
 const ViberIcon = ({ className }: { className?: string }) => (
@@ -60,6 +61,7 @@ export default function FloatingMessenger() {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackEvent("Клік по месенджеру", { channel: name })}
             aria-label={`Написати у ${name}`}
             title={`${name}: ${STORE.phoneDisplay}`}
             className={`flex items-center justify-center w-12 h-12 rounded-full text-white shadow-lg hover:scale-110 transition-transform ${bg}`}
@@ -71,7 +73,12 @@ export default function FloatingMessenger() {
 
       {/* Головна кнопка */}
       <button
-        onClick={() => setIsOpen((v) => !v)}
+        onClick={() => {
+          setIsOpen((v) => {
+            if (!v) trackEvent("Відкрито месенджери");
+            return !v;
+          });
+        }}
         aria-label={isOpen ? "Закрити месенджери" : "Зв'язатися з нами"}
         aria-expanded={isOpen}
         className="flex items-center justify-center w-14 h-14 rounded-full bg-opora-brown text-white shadow-xl hover:opacity-90 transition-all"

@@ -55,7 +55,7 @@ export default function Footer() {
       {/* LEFT: Map — no padding, full height, ~45% width */}
       <div className="relative h-64 lg:h-auto lg:w-[45%] shrink-0 m-5">
         <iframe
-          src={`https://maps.google.com/maps?q=${encodeURIComponent(`${STORE.addressLine}, ${STORE.city}`)}&z=16&output=embed`}
+          src={`https://maps.google.com/maps?q=${encodeURIComponent(`${STORE.addressLine}, ${STORE.city}`)}&z=14&output=embed`}
           className="absolute inset-0 w-full h-full"
           style={{ border: 0, display: 'block' }}
           allowFullScreen={false}
@@ -95,7 +95,7 @@ export default function Footer() {
               <input
                 type="tel"
                 placeholder="+380 XX XXX XX XX"
-                pattern="^\+380\d{9}$"
+                pattern="^\+380 \d{2} \d{3} \d{2} \d{2}$"
                 required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: formatUaPhone(e.target.value) })}

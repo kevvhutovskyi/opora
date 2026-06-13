@@ -11,8 +11,10 @@ export function generateRequestNumber() {
 }
 
 // Нормалізує телефонний ввід: завжди починається з "+380", далі лише цифри
-// (максимум 9 цифр після коду країни). Префікс "+380" незмінний — спроба його
-// стерти просто залишає "+380" (без помилкового "+38038").
+// (максимум 9 цифр після коду країни), згруповані пробілами як "+380 66 666 66 66".
+// Префікс "+380" незмінний — спроба його стерти просто залишає "+380"
+// (без помилкового "+38038"). Цей самий формат (з пробілами) йде у заявку,
+// тож зберігається в Airtable і надсилається в Telegram у читабельному вигляді.
 export function formatUaPhone(raw: string): string {
   const allDigits = raw.replace(/\D/g, "");
 
@@ -28,7 +30,17 @@ export function formatUaPhone(raw: string): string {
     subscriber = allDigits.replace(/^0+/, "");
   }
 
-  return "+380" + subscriber.slice(0, 9);
+  subscriber = subscriber.slice(0, 9);
+
+  // Групуємо абонентські цифри: XX XXX XX XX
+  const groups = [
+    subscriber.slice(0, 2),
+    subscriber.slice(2, 5),
+    subscriber.slice(5, 7),
+    subscriber.slice(7, 9),
+  ].filter(Boolean);
+
+  return groups.length ? `+380 ${groups.join(" ")}` : "+380";
 }
 
 // Кут відтінку (hue, 0–360) кольору — для впорядкування свотчів за веселкою.

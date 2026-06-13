@@ -65,6 +65,13 @@ export function GallerySection({ variantId, variantsTable, activeVariant }: Gall
             padding={2}
             style={{ background: UI.rowBg, border: `1px solid ${UI.border}`, borderRadius: 8 }}
           >
+            <a href={url} target="_blank" rel="noreferrer" style={{ flexShrink: 0, marginRight: 12, lineHeight: 0 }}>
+              <img
+                src={url}
+                alt=""
+                style={{ width: 96, height: 72, objectFit: 'cover', borderRadius: 6, border: `1px solid ${UI.border}`, display: 'block' }}
+              />
+            </a>
             <Box flex="1" overflow="hidden" marginRight={3}>
               <a href={url} target="_blank" rel="noreferrer" style={{ wordBreak: 'break-all', color: UI.primary }}>{url}</a>
             </Box>

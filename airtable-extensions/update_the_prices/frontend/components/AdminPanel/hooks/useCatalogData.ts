@@ -11,6 +11,7 @@ export function useCatalogData() {
   const prodSpecsTable = base.getTableByNameIfExists(TABLES.productSpecs);
   const popularProductsTable = base.getTableByNameIfExists(TABLES.popularProducts);
   const requestsTable = base.getTableByNameIfExists(TABLES.requests);
+  const bannersTable = base.getTableByNameIfExists(TABLES.banners);
 
   const productsRecords = useRecords(productsTable);
   const variantsRecords = useRecords(variantsTable);
@@ -21,6 +22,7 @@ export function useCatalogData() {
   const requestsRecords = useRecords(requestsTable, {
     sorts: [{ field: FIELDS.request.number, direction: 'desc' }],
   });
+  const bannersRecords = useRecords(bannersTable);
 
   return {
     isReady: !!productsTable, // Simple flag to check if the base loaded
@@ -29,6 +31,7 @@ export function useCatalogData() {
       optionsTable,
       specsTable,
       requestsTable,
+      bannersTable,
     },
     records: {
       productsRecords,
@@ -38,6 +41,7 @@ export function useCatalogData() {
       prodSpecsRecords,
       popularProductsRecords,
       requestsRecords,
+      bannersRecords,
     },
   };
 }

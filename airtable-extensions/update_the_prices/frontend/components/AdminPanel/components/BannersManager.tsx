@@ -1,0 +1,355 @@
+import React, { useMemo, useState } from 'react';
+import { Box, Button, Heading, Text } from '@airtable/blocks/ui';
+import { Record, Table } from '@airtable/blocks/models';
+import { mediaApi } from '../services/mediaApi';
+import { BANNER_TYPES, CATEGORY_ITEMS, FIELDS, TABLES, UI } from '../constants';
+import { Card, Section } from './ui';
+
+interface BannersManagerProps {
+  bannersTable: Table | null;
+  bannersRecords: Record[] | null;
+  onGoBack: () => void;
+}
+
+/** Прев'ю зображення банера. */
+function Preview({ url }: { url: string }): JSX.Element {
+  if (!url) {
+    return (
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        style={{ width: 200, height: 112, background: UI.rowBg, border: `1px dashed ${UI.borderStrong}`, borderRadius: 8, flexShrink: 0 }}
+      >
+        <Text textColor="light" size="small">Немає фото</Text>
+      </Box>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt=""
+      style={{ width: 200, height: 112, objectFit: 'cover', borderRadius: 8, border: `1px solid ${UI.border}`, flexShrink: 0 }}
+    />
+  );
+}
+
+export default function BannersManager({ bannersTable, bannersRecords, onGoBack }: BannersManagerProps): JSX.Element {
+  const [busy, setBusy] = useState(false);
+
+  const sliderRecords = useMemo(
+    () =>
+      (bannersRecords || [])
+        .filter((r) => r.getCellValueAsString(FIELDS.banner.type) === BANNER_TYPES.slider)
+        .sort(
+          (a, b) =>
+            (Number(a.getCellValue(FIELDS.banner.order)) || 0) - (Number(b.getCellValue(FIELDS.banner.order)) || 0)
+        ),
+    [bannersRecords]
+  );
+
+  const catalogRecord = useMemo(
+    () => (bannersRecords || []).find((r) => r.getCellValueAsString(FIELDS.banner.type) === BANNER_TYPES.catalog) || null,
+    [bannersRecords]
+  );
+
+  // Map categoryName → record for quick lookup
+  const categoryRecordMap = useMemo(() => {
+    const map = new Map<string, Record>();
+    (bannersRecords || [])
+      .filter((r) => r.getCellValueAsString(FIELDS.banner.type) === BANNER_TYPES.category)
+      .forEach((r) => map.set(r.getCellValueAsString(FIELDS.banner.name), r));
+    return map;
+  }, [bannersRecords]);
+
+  if (!bannersTable) {
+    return (
+      <Card padding={5} display="flex" flexDirection="column" style={{ gap: 12 }}>
+        <Button icon="chevronLeft" onClick={onGoBack} alignSelf="flex-start">Назад</Button>
+        <Heading size="small" margin={0}>Таблиця «{TABLES.banners}» не знайдена</Heading>
+        <Text textColor="light">
+          Створіть у базі таблицю «{TABLES.banners}» з колонками: «{FIELDS.banner.name}» (текст, первинна),
+          «{FIELDS.banner.type}» (single select: «{BANNER_TYPES.slider}», «{BANNER_TYPES.catalog}»),
+          «{FIELDS.banner.image}» (текст/URL), «{FIELDS.banner.order}» (число), «{FIELDS.banner.active}» (чекбокс).
+        </Text>
+      </Card>
+    );
+  }
+
+  const addSlide = async (file: File) => {
+    setBusy(true);
+    try {
+      const url = await mediaApi.uploadBanner(file);
+      const nextOrder = sliderRecords.length
+        ? Math.max(...sliderRecords.map((r) => Number(r.getCellValue(FIELDS.banner.order)) || 0)) + 1
+        : 1;
+      await bannersTable.createRecordAsync({
+        [FIELDS.banner.name]: `Слайд ${nextOrder}`,
+        [FIELDS.banner.type]: { name: BANNER_TYPES.slider },
+        [FIELDS.banner.image]: url,
+        [FIELDS.banner.order]: nextOrder,
+        [FIELDS.banner.active]: true,
+      });
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося завантажити зображення.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const replaceImage = async (record: Record, file: File) => {
+    setBusy(true);
+    try {
+      const oldUrl = record.getCellValueAsString(FIELDS.banner.image);
+      const url = await mediaApi.uploadBanner(file);
+      await bannersTable.updateRecordAsync(record.id, { [FIELDS.banner.image]: url });
+      if (oldUrl && oldUrl !== url) await mediaApi.deleteBanner(oldUrl).catch(() => {});
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося оновити зображення.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteSlide = async (record: Record) => {
+    if (!window.confirm('Видалити цей слайд разом із фото?')) return;
+    setBusy(true);
+    try {
+      const url = record.getCellValueAsString(FIELDS.banner.image);
+      await bannersTable.deleteRecordAsync(record.id);
+      if (url) await mediaApi.deleteBanner(url).catch(() => {});
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося видалити слайд.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const move = async (index: number, direction: 'up' | 'down') => {
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= sliderRecords.length) return;
+    const a = sliderRecords[index];
+    const b = sliderRecords[target];
+    const aOrder = Number(a.getCellValue(FIELDS.banner.order)) || 0;
+    const bOrder = Number(b.getCellValue(FIELDS.banner.order)) || 0;
+    setBusy(true);
+    try {
+      await bannersTable.updateRecordsAsync([
+        { id: a.id, fields: { [FIELDS.banner.order]: bOrder } },
+        { id: b.id, fields: { [FIELDS.banner.order]: aOrder } },
+      ]);
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося змінити порядок.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setCatalogImage = async (file: File) => {
+    setBusy(true);
+    try {
+      const url = await mediaApi.uploadBanner(file);
+      if (catalogRecord) {
+        const oldUrl = catalogRecord.getCellValueAsString(FIELDS.banner.image);
+        await bannersTable.updateRecordAsync(catalogRecord.id, { [FIELDS.banner.image]: url });
+        if (oldUrl && oldUrl !== url) await mediaApi.deleteBanner(oldUrl).catch(() => {});
+      } else {
+        await bannersTable.createRecordAsync({
+          [FIELDS.banner.name]: 'Каталог Hero',
+          [FIELDS.banner.type]: { name: BANNER_TYPES.catalog },
+          [FIELDS.banner.image]: url,
+          [FIELDS.banner.active]: true,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося завантажити зображення.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onPick = (handler: (file: File) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handler(file);
+    e.target.value = '';
+  };
+
+  const catalogUrl = catalogRecord?.getCellValueAsString(FIELDS.banner.image) || '';
+
+  const setCategoryImage = async (categoryName: string, file: File) => {
+    if (!bannersTable) return;
+    setBusy(true);
+    try {
+      const url = await mediaApi.uploadBanner(file);
+      const existing = categoryRecordMap.get(categoryName);
+      if (existing) {
+        const oldUrl = existing.getCellValueAsString(FIELDS.banner.image);
+        await bannersTable.updateRecordAsync(existing.id, { [FIELDS.banner.image]: url });
+        if (oldUrl && oldUrl !== url) await mediaApi.deleteBanner(oldUrl).catch(() => {});
+      } else {
+        await bannersTable.createRecordAsync({
+          [FIELDS.banner.name]: categoryName,
+          [FIELDS.banner.type]: { name: BANNER_TYPES.category },
+          [FIELDS.banner.image]: url,
+          [FIELDS.banner.active]: true,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося завантажити зображення.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeCategoryImage = async (categoryName: string) => {
+    const existing = categoryRecordMap.get(categoryName);
+    if (!existing || !bannersTable) return;
+    if (!window.confirm(`Видалити зображення категорії «${categoryName}»?`)) return;
+    setBusy(true);
+    try {
+      const url = existing.getCellValueAsString(FIELDS.banner.image);
+      await bannersTable.updateRecordAsync(existing.id, { [FIELDS.banner.image]: '' });
+      if (url) await mediaApi.deleteBanner(url).catch(() => {});
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося видалити зображення.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeCatalogImage = async () => {
+    if (!catalogRecord) return;
+    if (!window.confirm('Видалити зображення банера каталогу?')) return;
+    setBusy(true);
+    try {
+      const url = catalogRecord.getCellValueAsString(FIELDS.banner.image);
+      await bannersTable.updateRecordAsync(catalogRecord.id, { [FIELDS.banner.image]: '' });
+      if (url) await mediaApi.deleteBanner(url).catch(() => {});
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося видалити зображення.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Box display="flex" flexDirection="column" style={{ gap: 16 }}>
+      <Card padding={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box display="flex" flexDirection="column">
+            <Heading size="large" margin={0}>Банери</Heading>
+            <Text textColor="light" size="small">Фото головного слайдера та банера каталогу (Cloudflare R2)</Text>
+          </Box>
+          <Button icon="chevronLeft" onClick={onGoBack}>Назад</Button>
+        </Box>
+      </Card>
+
+      <Card padding={4}>
+        {/* HERO SLIDER */}
+        <Section first title={`Hero Slider — слайди (${sliderRecords.length})`}>
+          <Box display="flex" flexDirection="column" style={{ gap: 12 }}>
+            {sliderRecords.map((rec, idx, arr) => {
+              const url = rec.getCellValueAsString(FIELDS.banner.image);
+              return (
+                <Box
+                  key={rec.id}
+                  display="flex"
+                  alignItems="center"
+                  padding={2}
+                  style={{ gap: 16, background: UI.rowBg, border: `1px solid ${UI.border}`, borderRadius: 8 }}
+                >
+                  <Preview url={url} />
+                  <Box flex="1" display="flex" flexDirection="column" style={{ gap: 6 }}>
+                    <Text size="small" fontWeight={600}>{rec.getCellValueAsString(FIELDS.banner.name) || `Слайд ${idx + 1}`}</Text>
+                    <Box>
+                      <Text size="small" textColor="light" marginBottom={1}>Замінити фото:</Text>
+                      <input type="file" accept="image/*" disabled={busy} onChange={onPick((f) => replaceImage(rec, f))} />
+                    </Box>
+                  </Box>
+                  <Box display="flex" alignItems="center" flexShrink={0} style={{ gap: 4 }}>
+                    <Button size="small" icon="chevronUp" disabled={busy || idx === 0} onClick={() => move(idx, 'up')} />
+                    <Button size="small" icon="chevronDown" disabled={busy || idx === arr.length - 1} onClick={() => move(idx, 'down')} />
+                    <Button size="small" icon="trash" variant="danger" disabled={busy} onClick={() => deleteSlide(rec)} />
+                  </Box>
+                </Box>
+              );
+            })}
+            {sliderRecords.length === 0 && <Text textColor="light">Слайдів ще немає</Text>}
+          </Box>
+
+          <Box marginTop={3}>
+            <Text size="small" textColor="light" marginBottom={1}>Додати слайд (завантажити фото):</Text>
+            <input type="file" accept="image/*" disabled={busy} onChange={onPick(addSlide)} />
+          </Box>
+        </Section>
+
+        {/* CATALOG HERO */}
+        <Section title="Catalog Hero — банер каталогу">
+          <Box display="flex" alignItems="center" style={{ gap: 16 }}>
+            <Preview url={catalogUrl} />
+            <Box flex="1" display="flex" flexDirection="column" style={{ gap: 8 }}>
+              <Box>
+                <Text size="small" textColor="light" marginBottom={1}>
+                  {catalogUrl ? 'Замінити фото:' : 'Завантажити фото:'}
+                </Text>
+                <input type="file" accept="image/*" disabled={busy} onChange={onPick(setCatalogImage)} />
+              </Box>
+              {catalogUrl && (
+                <Box>
+                  <Button size="small" icon="trash" variant="danger" disabled={busy} onClick={removeCatalogImage}>
+                    Видалити фото
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </Section>
+
+        {/* CATEGORIES */}
+        <Section title="Категорії — зображення блоку на головній">
+          <Box display="flex" flexDirection="column" style={{ gap: 12 }}>
+            {CATEGORY_ITEMS.map((name) => {
+              const rec = categoryRecordMap.get(name);
+              const url = rec?.getCellValueAsString(FIELDS.banner.image) || '';
+              return (
+                <Box
+                  key={name}
+                  display="flex"
+                  alignItems="center"
+                  padding={2}
+                  style={{ gap: 16, background: UI.rowBg, border: `1px solid ${UI.border}`, borderRadius: 8 }}
+                >
+                  <Preview url={url} />
+                  <Box flex="1" display="flex" flexDirection="column" style={{ gap: 8 }}>
+                    <Text size="small" fontWeight={600}>{name}</Text>
+                    <Box>
+                      <Text size="small" textColor="light" marginBottom={1}>
+                        {url ? 'Замінити фото:' : 'Завантажити фото:'}
+                      </Text>
+                      <input type="file" accept="image/*" disabled={busy} onChange={onPick((f) => setCategoryImage(name, f))} />
+                    </Box>
+                    {url && (
+                      <Button size="small" icon="trash" variant="danger" disabled={busy} onClick={() => removeCategoryImage(name)}>
+                        Видалити фото
+                      </Button>
+                    )}
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        </Section>
+
+        {busy && <Text textColor="light" marginTop={3}>Завантаження в Cloudflare R2… ⏳</Text>}
+      </Card>
+    </Box>
+  );
+}

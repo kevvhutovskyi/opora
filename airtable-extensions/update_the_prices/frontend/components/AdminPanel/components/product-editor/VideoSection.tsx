@@ -45,15 +45,19 @@ export function VideoSection({ productId, productRecord }: VideoSectionProps): J
       {videoUrls.map((url, idx) => (
         <Box
           key={idx}
-          display="flex"
-          alignItems="center"
-          justifyContent="space-between"
           padding={2}
           marginBottom={2}
           style={{ background: UI.rowBg, border: `1px solid ${UI.border}`, borderRadius: 8 }}
         >
-          <Text style={{ wordBreak: 'break-all' }}>{url}</Text>
-          <Button size="small" icon="trash" variant="danger" onClick={() => handleDelete(url)} />
+          <video
+            src={url}
+            controls
+            style={{ width: '100%', maxHeight: 320, borderRadius: 6, background: '#000', display: 'block' }}
+          />
+          <Box display="flex" alignItems="center" justifyContent="space-between" marginTop={2}>
+            <a href={url} target="_blank" rel="noreferrer" style={{ wordBreak: 'break-all', color: UI.primary }}>{url}</a>
+            <Button size="small" icon="trash" variant="danger" onClick={() => handleDelete(url)} style={{ flexShrink: 0, marginLeft: 12 }} />
+          </Box>
         </Box>
       ))}
       {videoUrls.length === 0 && (

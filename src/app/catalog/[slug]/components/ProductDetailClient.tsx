@@ -4,6 +4,7 @@ import { useState, useRef, UIEvent, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useCartStore } from "@/store/cartStore";
 import { toHue } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics/umami";
 import Reviews from "@/components/blocks/Reviews";
 import { Option, Product, Variant, hexColor } from "./types";
 import ProductGallery from "./ProductGallery";
@@ -159,12 +160,19 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     };
 
     addItemToCart(itemPayload);
+    trackEvent("Додано до кошика", {
+      product: product.model || product.name,
+      sku: activeVariant.sku,
+      price: activeVariant.price || product.minPrice,
+      qty,
+    });
     setToast({ message: `Додано до кошика: ${product.model || product.name} (${qty} шт.)`, options: activeVariant.options });
     setTimeout(() => setToast(null), 3000);
   };
 
   // Відкрити повний опис: розгорнути акордеон «Опис» і доскролити до нього
   const handleReadMore = () => {
+    trackEvent("Читати більше", { product: product.model || product.name });
     setOpenSections((prev) => (prev.includes('desc') ? prev : [...prev, 'desc']));
     requestAnimationFrame(() => {
       document.getElementById('accordion-desc')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -180,6 +188,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   };
 
   const openGallery = (index: number) => {
+    trackEvent("Відкрито галерею", { product: product.model || product.name, index });
     setFullscreenSlide(index);
     setGalleryMounted(true);
     setIsFullscreen(true);
@@ -222,7 +231,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     const match =
       product.variants.find((v) => v.options.every((o, i) => o.value === desired[i])) ??
       product.variants.find((v) => v.options[optionIndex]?.value === value);
-    if (match) setActiveVariant(match);
+    if (match) {
+      setActiveVariant(match);
+      trackEvent("Вибір варіації", { product: product.model || product.name, value });
+    }
   };
 
   // Чи доступна опція (є варіація в наявності) з урахуванням поточного вибору інших опцій
@@ -263,7 +275,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             <AssemblyVideo
               videoUrl={product.assemblyVideoUrl}
               isPlaying={isVideoPlaying}
-              onPlay={() => setIsVideoPlaying(true)}
+              onPlay={() => {
+                setIsVideoPlaying(true);
+                trackEvent("Відтворено відео", { product: product.model || product.name });
+              }}
             />
           </div>
         </div>

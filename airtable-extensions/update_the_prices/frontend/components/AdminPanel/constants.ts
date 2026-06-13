@@ -9,6 +9,7 @@ export const TABLES = {
   productSpecs: 'Товари/Характеристики',
   popularProducts: 'Найпопулярніші Товари',
   requests: 'Запити',
+  banners: 'Банери',
 } as const;
 
 export const FIELDS = {
@@ -48,7 +49,24 @@ export const FIELDS = {
     order: 'Замовлення',
     warmed: 'Прогрет',
   },
+  banner: {
+    name: 'Назва',
+    type: 'Тип',
+    image: 'Зображення',
+    order: 'Порядок',
+    active: 'Активний',
+  },
 } as const;
+
+// Значення поля «Тип» у таблиці «Банери» (single select).
+export const BANNER_TYPES = {
+  slider: 'Слайдер',
+  catalog: 'Каталог',
+  category: 'Категорія',
+} as const;
+
+// Фіксований список категорій — назви мають точно збігатись з полем «Назва» у таблиці «Банери».
+export const CATEGORY_ITEMS = ['Стільці', 'Столи', 'Лампи'] as const;
 
 // Базовий URL Next.js API (R2-завантаження медіа).
 export const API_BASE_URL = 'http://localhost:3000';

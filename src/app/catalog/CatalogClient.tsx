@@ -10,14 +10,20 @@ import ProductCard from "@/components/ui/ProductCard";
 import ProductCardSkeleton from "@/components/ui/ProductCardSkeleton";
 import { FiltersIcon, SortingIcon } from "@/components/ui/Icons";
 import { CatalogProductDetails } from "@/lib";
+import { trackEvent } from "@/lib/analytics/umami";
 
 type CatalogClientProps = {
   initialProducts: CatalogProductDetails[],
   filterOptions: DynamicFilters,
   categories: string[],
+  // Банер каталогу з таблиці «Банери» (R2). Поки немає — мок нижче.
+  heroImage?: string | null,
 }
 
-export default function CatalogClient({ initialProducts, filterOptions, categories }: CatalogClientProps) {
+// Мок-зображення банера каталогу (fallback, поки в базі немає свого фото).
+const MOCK_CATALOG_HERO = "/images/catalog-hero.jpg";
+
+export default function CatalogClient({ initialProducts, filterOptions, categories, heroImage }: CatalogClientProps) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const sidebarFilterRef = useRef<FilterContentRef>(null);
@@ -42,12 +48,22 @@ export default function CatalogClient({ initialProducts, filterOptions, categori
     });
   };
 
+  const handleFilterApply = (queryString: string) => {
+    trackEvent("Фільтр каталогу", { query: queryString });
+    navigate(queryString);
+  };
+
+  const handleSortApply = (queryString: string) => {
+    trackEvent("Сортування каталогу", { query: queryString });
+    navigate(queryString);
+  };
+
   return (
     <main className="min-h-screen bg-opora-white pb-24">
 
       <section className="relative w-full h-[50svh] md:h-[60svh] bg-opora-softBeige overflow-hidden pt-24">
         <Image
-          src="/images/catalog-hero.jpg"
+          src={heroImage || MOCK_CATALOG_HERO}
           alt=""
           fill
           sizes="100vw"
@@ -93,7 +109,7 @@ export default function CatalogClient({ initialProducts, filterOptions, categori
             <div className="flex flex-1 min-h-0">
               <div className="flex-1 overflow-y-auto pl-4 space-y-8 pb-4">
                 <div className="pb-8 border-b border-opora-brown/10">
-                  <SortContent onClose={() => {}} onApply={navigate} />
+                  <SortContent onClose={() => {}} onApply={handleSortApply} />
                 </div>
                 <div>
                   <h3 className="font-bold text-xl mb-6 text-opora-brown text-center">Фільтри</h3>
@@ -104,7 +120,7 @@ export default function CatalogClient({ initialProducts, filterOptions, categori
                     onClose={() => {}}
                     filters={filterOptions}
                     categories={categories}
-                    onApply={navigate}
+                    onApply={handleFilterApply}
                   />
                 </div>
               </div>
@@ -152,11 +168,11 @@ export default function CatalogClient({ initialProducts, filterOptions, categori
 
       {/* Mobile: filter opens from the right, sort from the left */}
       <Drawer isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} position="right">
-        <FilterContent onClose={() => setIsFilterOpen(false)} filters={filterOptions} categories={categories} onApply={navigate} />
+        <FilterContent onClose={() => setIsFilterOpen(false)} filters={filterOptions} categories={categories} onApply={handleFilterApply} />
       </Drawer>
 
       <Drawer isOpen={isSortOpen} onClose={() => setIsSortOpen(false)} position="left">
-        <SortContent onClose={() => setIsSortOpen(false)} onApply={navigate} />
+        <SortContent onClose={() => setIsSortOpen(false)} onApply={handleSortApply} />
       </Drawer>
 
     </main>

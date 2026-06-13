@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import { Rubik } from "next/font/google";
-import "./globals.css"; // ЦЕЙ ІМПОРТ Є ОБОВ'ЯЗКОВИМ! Без нього Tailwind не завантажиться.
+import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import FloatingMessenger from "@/components/layout/FloatingMessenger";
 import JsonLd from "@/components/seo/JsonLd";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION, DEFAULT_OG_IMAGE } from "@/lib/site";
 import Providers from "./providers";
+import Script from "next/script";
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+const UMAMI_WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
+const UMAMI_SRC = process.env.NEXT_PUBLIC_UMAMI_SRC ?? "https://cloud.umami.is/script.js";
 
 const rubik = Rubik({
   subsets: ["latin", "cyrillic"],
@@ -56,6 +61,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk" className={`${rubik.variable}`}>
+      <head>
+        {/* GA */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', '${GA_ID}');
+          `}
+        </Script>
+
+        {/* UMAMI */}
+        {UMAMI_WEBSITE_ID && (
+          <Script defer src={UMAMI_SRC} data-website-id={UMAMI_WEBSITE_ID} />
+        )}
+      </head>
       <body className="font-sans text-opora-brown antialiased" suppressHydrationWarning>
         <JsonLd data={organizationJsonLd} />
         <Providers>

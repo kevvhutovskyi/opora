@@ -129,7 +129,7 @@ export default function BuyBox({
         }`}
         disabled={isUnavailable}
       >
-        {isUnavailable ? 'Немає в наявності' : 'Добавити до кошика'}
+        {isUnavailable ? 'Немає в наявності' : 'Додати до кошика'}
       </button>
     </div>
   );

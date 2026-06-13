@@ -293,7 +293,7 @@ export default function Header() {
                     type="tel"
                     required
                     placeholder="+380 XX XXX XX XX"
-                    pattern="^\+380\d{9}$"
+                    pattern="^\+380 \d{2} \d{3} \d{2} \d{2}$"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: formatUaPhone(e.target.value) })}
                     className="w-full border border-opora-brown p-4 pr-8 text-lg bg-transparent focus:outline-none focus:ring-1 focus:ring-opora-brown placeholder:text-opora-brown/50"
