@@ -120,10 +120,13 @@ async function fetchFilteredCatalog(
             return { hex: String(o!.get(FIELDS.option.value) || ""), name };
           });
 
+          const imgs = parseImageUrls(variation!.get(FIELDS.variant.photos));
+          const compressed = parseImageUrls(variation!.get(FIELDS.variant.photosCompressed));
           return {
             id: variation!.id,
             allHexes,
-            images: parseImageUrls(variation!.get(FIELDS.variant.photos)),
+            images: imgs,
+            imagesCompressed: imgs.map((orig, i) => compressed[i] || orig),
           };
         });
 

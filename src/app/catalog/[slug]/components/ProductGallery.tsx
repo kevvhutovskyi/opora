@@ -9,6 +9,68 @@ interface ProductGalleryProps {
   onImageClick: (index: number) => void;
 }
 
+// Одне фото з кросфейдом при зміні варіації.
+// Поки нове фото вантажиться — лишається видимим попереднє (на одну позицію),
+// а нове плавно проявляється зверху. Так немає «миготіння» беж-скелетона при зміні кольору.
+// Скелетон показуємо лише на найпершому завантаженні, коли під низом ще нічого немає.
+interface GalleryImageProps {
+  src: string;
+  alt: string;
+  priority: boolean;
+  sizes: string;
+  className: string;
+  onClick: () => void;
+  wrapperClassName: string;
+}
+
+function GalleryImage({ src, alt, priority, sizes, className, onClick, wrapperClassName }: GalleryImageProps) {
+  // Останнє фото, яке повністю завантажилось (показуємо під низом під час переходу).
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const isCurrentLoaded = loadedSrc === src;
+  const hasPrevious = loadedSrc !== null;
+
+  return (
+    <div onClick={onClick} className={wrapperClassName}>
+      {/* Скелетон — лише на найпершому завантаженні (немає попереднього фото під низом) */}
+      <div
+        aria-hidden="true"
+        className={`absolute inset-0 z-0 bg-opora-softBeige transition-opacity duration-300 ${
+          hasPrevious ? "opacity-0 animate-none" : "opacity-100 animate-pulse"
+        }`}
+      />
+
+      {/* Попереднє фото лишається видимим під новим, поки нове не завантажиться */}
+      {loadedSrc && !isCurrentLoaded && (
+        <Image
+          src={loadedSrc}
+          alt={alt}
+          fill
+          sizes={sizes}
+          className={`${className} z-10`}
+        />
+      )}
+
+      {/* Цільове фото: проявляється зверху по завантаженні (миттєво, якщо вже в кеші) */}
+      <Image
+        key={src}
+        src={src}
+        alt={alt}
+        fill
+        sizes={sizes}
+        priority={priority}
+        // Якщо фото вже в кеші — img.complete === true одразу при монтуванні.
+        ref={(node) => {
+          if (node?.complete) setLoadedSrc(src);
+        }}
+        onLoad={() => setLoadedSrc(src)}
+        className={`${className} z-20 transition-opacity duration-300 ${
+          isCurrentLoaded ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    </div>
+  );
+}
+
 export default function ProductGallery({ images, onImageClick }: ProductGalleryProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const [activeSlide, setActiveSlide] = useState(0);
@@ -29,20 +91,18 @@ export default function ProductGallery({ images, onImageClick }: ProductGalleryP
           className="flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none"
         >
           {images.map((img, idx) => (
-            <div
-              key={idx}
+            // key за позицією (idx), а не src — компонент лишається змонтованим при зміні
+            // варіації, тож кросфейд між старим і новим фото працює без миготіння.
+            <GalleryImage
+              key={`m-${idx}`}
+              src={img}
+              alt={`Фото товару ${idx + 1}`}
+              sizes="100vw"
+              priority={idx === 0}
               onClick={() => onImageClick(idx)}
-              className="w-full shrink-0 snap-center aspect-square bg-opora-softBeige overflow-hidden relative cursor-pointer"
-            >
-              <Image
-                src={img}
-                alt={`Фото товару ${idx + 1}`}
-                fill
-                sizes="100vw"
-                priority={idx === 0}
-                className="object-cover object-center"
-              />
-            </div>
+              wrapperClassName="w-full shrink-0 snap-center aspect-square bg-opora-softBeige overflow-hidden relative cursor-pointer"
+              className="object-cover object-center"
+            />
           ))}
         </div>
 
@@ -63,20 +123,16 @@ export default function ProductGallery({ images, onImageClick }: ProductGalleryP
       {/* ДЕСКТОП: сітка квадратів 2 в ряд */}
       <div className="hidden lg:grid grid-cols-2 gap-4">
         {images.map((img, idx) => (
-          <div
-            key={idx}
+          <GalleryImage
+            key={`d-${idx}`}
+            src={img}
+            alt={`Фото товару ${idx + 1}`}
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            priority={idx === 0}
             onClick={() => onImageClick(idx)}
-            className="aspect-square bg-opora-softBeige overflow-hidden relative cursor-pointer group"
-          >
-            <Image
-              src={img}
-              alt={`Фото товару ${idx + 1}`}
-              fill
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              priority={idx === 0}
-              className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
+            wrapperClassName="aspect-square bg-opora-softBeige overflow-hidden relative cursor-pointer group"
+            className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+          />
         ))}
       </div>
     </>

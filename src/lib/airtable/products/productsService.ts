@@ -36,7 +36,6 @@ export async function getProducts(type: ProductType): Promise<GeneralProduct[]> 
   return records.map((record) => ({
     id: record.id,
     description: String(record.get(FIELDS.product.description) || ""),
-    manufacturer: String(record.get(FIELDS.product.manufacturer) || ""),
     model: String(record.get(FIELDS.product.model) || ""),
     inStock: Boolean(record.get(FIELDS.product.inStock) || false),
     price: Number(record.get(FIELDS.product.price) || 0),
@@ -82,6 +81,8 @@ export async function getMultipleProductsWithVariations(productIds: string[]): P
           .map((id) => optionsById.get(id))
           .filter(Boolean);
 
+        const imgs = parseImageUrls(variation!.get(FIELDS.variant.photos));
+        const compressed = parseImageUrls(variation!.get(FIELDS.variant.photosCompressed));
         return {
           id: variation!.id,
           colorName:
@@ -90,7 +91,8 @@ export async function getMultipleProductsWithVariations(productIds: string[]): P
             hex: String(o!.get(FIELDS.option.value) || ""),
             name: String(o!.get(FIELDS.option.name) || ""),
           })),
-          images: parseImageUrls(variation!.get(FIELDS.variant.photos)),
+          images: imgs,
+          imagesCompressed: imgs.map((orig, i) => compressed[i] || orig),
           price: String(variation!.get(FIELDS.variant.price) || ""),
         };
       });
@@ -117,7 +119,8 @@ export interface ProductDetailVariant {
   sku: string;
   price: number;
   inStock: boolean;
-  images: string[];
+  images: string[];           // оригінали — для повноекранної галереї
+  imagesCompressed: string[]; // стиснені (з fallback на оригінал) — для сторінки
   options: ProductDetailOption[];
 }
 
@@ -125,7 +128,6 @@ export interface ProductDetail {
   id: string;
   name: string;
   model: string;
-  manufacturer: string;
   catalog: string;
   description: string;
   assemblyVideoUrl: string;
@@ -150,13 +152,19 @@ export const getProductById = cache(async (productId: string): Promise<ProductDe
   const optionIds = variantsRecords.flatMap((v) => (v.get(FIELDS.variant.options) as string[]) || []);
   const optionsById = indexById(await fetchRecordsByIds(tableOptions, optionIds));
 
-  const variants: ProductDetailVariant[] = variantsRecords.map((v) => ({
+  const variants: ProductDetailVariant[] = variantsRecords.map((v) => {
+    const images = parseImageUrls(v.get(FIELDS.variant.photos));
+    const compressed = parseImageUrls(v.get(FIELDS.variant.photosCompressed));
+    return {
     id: v.id,
     name: v.get(FIELDS.variant.name) as string,
     sku: v.get(FIELDS.variant.sku) as string,
     price: (v.get(FIELDS.variant.price) as number) || 0,
     inStock: v.get(FIELDS.variant.inStock) as boolean,
-    images: parseImageUrls(v.get(FIELDS.variant.photos)),
+    images,
+    // Паралельний масив; якщо стисненої версії для якогось фото немає (старі фото) —
+    // fallback на оригінал, щоб порядок і кількість збігались.
+    imagesCompressed: images.map((orig, i) => compressed[i] || orig),
     options: ((v.get(FIELDS.variant.options) as string[]) || [])
       .map((id) => optionsById.get(id))
       .filter(Boolean)
@@ -164,13 +172,13 @@ export const getProductById = cache(async (productId: string): Promise<ProductDe
         name: o!.get(FIELDS.option.name) as string,
         value: o!.get(FIELDS.option.value) as string,
       })),
-  }));
+    };
+  });
 
   return {
     id: productRecord.id,
     name: productRecord.get(FIELDS.product.name) as string,
     model: productRecord.get(FIELDS.product.model) as string,
-    manufacturer: productRecord.get(FIELDS.product.manufacturer) as string,
     catalog: productRecord.get(FIELDS.product.catalog) as string,
     description: productRecord.get(FIELDS.product.description) as string,
     assemblyVideoUrl: productRecord.get(FIELDS.product.assemblyVideo) as string,

@@ -5,13 +5,14 @@ import ProductEditor from './AdminPanel/components/ProductEditor';
 import VariantEditor from './AdminPanel/components/VariantEditor';
 import RequestsCRM from './AdminPanel/components/RequestsCRM';
 import JsonUploader from './AdminPanel/components/JsonUploader';
+import BulkImageUploader from './AdminPanel/components/BulkImageUploader';
 import FiltersConfig from './AdminPanel/components/FiltersConfig';
 import BannersManager from './AdminPanel/components/BannersManager';
 import { useCatalogData } from './AdminPanel/hooks/useCatalogData';
 import { FIELDS, UI } from './AdminPanel/constants';
 import { isLinkedTo } from './AdminPanel/utils';
 
-type View = 'list' | 'edit_product' | 'edit_variant' | 'requests' | 'json_upload' | 'filters_config' | 'banners';
+type View = 'list' | 'edit_product' | 'edit_variant' | 'requests' | 'json_upload' | 'bulk_images' | 'filters_config' | 'banners';
 
 export default function AdminPanel(): JSX.Element {
   const { isReady, tables, records } = useCatalogData();
@@ -74,6 +75,7 @@ export default function AdminPanel(): JSX.Element {
             popularProductsRecords={popularProductsRecords}
             onNavigateToRequests={() => setView('requests')}
             onNavigateToJsonUpload={() => setView('json_upload')}
+            onNavigateToBulkImages={() => setView('bulk_images')}
             onNavigateToFilters={() => setView('filters_config')}
             onNavigateToBanners={() => setView('banners')}
             onCreateProduct={() => {
@@ -123,6 +125,15 @@ export default function AdminPanel(): JSX.Element {
         )}
 
         {view === 'json_upload' && <JsonUploader onGoBack={() => setView('list')} />}
+
+        {view === 'bulk_images' && (
+          <BulkImageUploader
+            productsRecords={productsRecords}
+            variantsRecords={variantsRecords}
+            optionsRecords={optionsRecords}
+            onGoBack={() => setView('list')}
+          />
+        )}
 
         {view === 'banners' && (
           <BannersManager

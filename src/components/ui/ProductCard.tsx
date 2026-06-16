@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { CatalogProductDetails, VariationImage } from '@/lib';
+import { CatalogProductDetails, VariationImage, MOCK_PRODUCT_IMAGES } from '@/lib';
 import { toHue } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics/umami';
 
@@ -51,9 +51,12 @@ export default function ProductCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedColors]);
 
-  // Safely extract the images for the *currently active* variation
-  const primaryImage = activeVariation?.images?.[0] || '/placeholder.png';
-  const secondaryImage = activeVariation?.images?.[1] || primaryImage; 
+  // Safely extract the images for the *currently active* variation.
+  // Якщо фото немає взагалі — показуємо тимчасові мок-зображення.
+  // Картки показують стиснені версії (легші, напряму з R2); fallback на оригінали/моки.
+  const cardImages = activeVariation?.imagesCompressed ?? activeVariation?.images;
+  const primaryImage = cardImages?.[0] || MOCK_PRODUCT_IMAGES[0];
+  const secondaryImage = cardImages?.[1] || MOCK_PRODUCT_IMAGES[1] || primaryImage;
 
   // Pick 4 variations evenly spaced across the hue-sorted array — maximally diverse palette
   const swatchesToShow = useMemo(() => {

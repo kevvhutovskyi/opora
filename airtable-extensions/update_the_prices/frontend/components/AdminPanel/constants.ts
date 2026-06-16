@@ -19,6 +19,7 @@ export const FIELDS = {
     assemblyVideo: 'Відео Збірки',
   },
   variant: {
+    name: 'Назва',
     sku: 'Артикул',
     price: 'Ціна',
     inStock: 'Наявність',

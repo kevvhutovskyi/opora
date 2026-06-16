@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
 
   },
   images: {
+    // Не оптимізуємо зображення у Worker'і (/_next/image). Інакше кожен запит тягнув би
+    // оригінал у Worker і кодував AVIF/WebP — на великих фото це впирається в ліміти Worker'а
+    // (Cloudflare Error 1102). Натомість віддаємо файли напряму з R2 CDN (вони вже стиснені
+    // на момент завантаження — див. /api/products/media/images). Lazy-loading лишається.
+    unoptimized: true,
     // Дозволені зовнішні хости для next/image.
     // R2 (фото товарів), Airtable (fallback), picsum (тимчасові слайди героя).
     remotePatterns: [
@@ -16,7 +21,6 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.airtableusercontent.com" },
       { protocol: "https", hostname: "picsum.photos" },
     ],
-    formats: ["image/avif", "image/webp"],
   },
   async headers() {
     return [

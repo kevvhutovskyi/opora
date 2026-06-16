@@ -4,6 +4,7 @@ import { useState, useRef, UIEvent, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useCartStore } from "@/store/cartStore";
 import { toHue } from "@/lib/utils";
+import { MOCK_PRODUCT_IMAGES } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics/umami";
 import Reviews from "@/components/blocks/Reviews";
 import { Option, Product, Variant, hexColor } from "./types";
@@ -41,10 +42,16 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
   const fullscreenSliderRef = useRef<HTMLDivElement>(null);
 
-  // Масив фотографій беремо з активної варіації
+  // Оригінали активної варіації — для повноекранної галереї.
   const currentImages = activeVariant?.images && activeVariant.images.length > 0
     ? activeVariant.images
-    : ['/placeholder.png']; // Заглушка, якщо фото немає
+    : [...MOCK_PRODUCT_IMAGES]; // Тимчасові мок-зображення, якщо фото немає
+
+  // Стиснені версії — для самої сторінки (легші, віддаються напряму з R2 без оптимізації Worker'а).
+  // Fallback на оригінали/моки, якщо стиснених немає (старі фото).
+  const currentImagesCompressed = activeVariant?.imagesCompressed && activeVariant.imagesCompressed.length > 0
+    ? activeVariant.imagesCompressed
+    : currentImages;
 
   // Надійна синхронізація прокрутки для повноекранної галереї
   useEffect(() => {
@@ -255,7 +262,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
         {/* ГАЛЕРЕЯ — ліва колонка, верхній рядок (сітка квадратів 2 в ряд) */}
         <div className="order-1 lg:col-start-1 lg:row-start-1">
-          <ProductGallery images={currentImages} onImageClick={openGallery} />
+          <ProductGallery images={currentImagesCompressed} onImageClick={openGallery} />
         </div>
 
         {/* БЛОК ПОКУПКИ + ВІДЕО — права колонка, тягнеться на 2 рядки, sticky всередині */}

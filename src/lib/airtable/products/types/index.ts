@@ -5,8 +5,9 @@ export * from './product';
 
 export interface VariationImage {
   id: string;
-  allHexes: { hex: string, name: string }[]; 
-  images: string[]; 
+  allHexes: { hex: string, name: string }[];
+  images: string[];           // оригінали
+  imagesCompressed?: string[]; // стиснені (для карток); fallback на images, якщо немає
 }
 
 export interface Specification {

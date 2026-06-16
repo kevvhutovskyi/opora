@@ -45,7 +45,7 @@ export default function Categories({ images = {} }: CategoriesProps) {
           <Link
             key={category.id}
             href={category.link}
-            className={`group relative w-full h-[350px] md:h-[400px] overflow-hidden bg-opora-beige block ${category.colSpan}`}
+            className={`group relative w-full h-87.5 md:h-100 overflow-hidden bg-opora-beige block ${category.colSpan}`}
           >
             {/* Background Image */}
             <Image
@@ -57,7 +57,7 @@ export default function Categories({ images = {} }: CategoriesProps) {
             />
             
             {/* Gradient Overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/10" />
+            <div className="absolute inset-0 bg-linear-to-b from-black/30 via-transparent to-black/10" />
 
             {/* Category Title */}
             <h3 className="absolute top-6 left-6 text-2xl md:text-3xl text-white font-medium tracking-wide">

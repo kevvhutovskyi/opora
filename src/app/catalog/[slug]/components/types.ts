@@ -11,7 +11,8 @@ export interface Variant {
   sku: string;
   price: number;
   inStock: boolean;
-  images: string[];
+  images: string[];           // оригінали — для повноекранної галереї
+  imagesCompressed: string[]; // стиснені — для сторінки
   options: Option[];
 }
 

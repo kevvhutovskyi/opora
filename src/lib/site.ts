@@ -18,7 +18,7 @@ export const STORE = {
   addressLine: "вул. Щирецька, 36",
   city: "Львів",
   hours: "Щодня з 10:00 до 19:00",
-  email: "info@opora.ua",
+  email: "opora.furniture@gmail.com",
   // Телефон у двох форматах: для відображення та для tel:/месенджерів
   phoneDisplay: "+380 67 010 39 66",
   phoneRaw: "380670103966",

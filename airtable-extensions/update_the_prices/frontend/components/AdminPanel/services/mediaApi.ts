@@ -33,10 +33,13 @@ export const mediaApi = {
     }
   },
 
-  uploadImages: async (files: FileList, variantId: string) => {
+  // replace=true перезаписує наявні фото варіації (старі видаляються з R2);
+  // за замовчуванням нові фото додаються до наявних.
+  uploadImages: async (files: FileList | File[], variantId: string, replace = false) => {
     const formData = new FormData();
     Array.from(files).forEach(file => formData.append('file', file));
     formData.append('variationId', variantId);
+    if (replace) formData.append('replace', 'true');
 
     const res = await fetch(`${NEXT_API_BASE_URL}/api/products/media/images`, {
       method: 'POST',

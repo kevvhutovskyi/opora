@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getProductById } from '@/lib/airtable/products/productsService';
 
 export async function GET(
-  request: NextRequest,
+  _: NextRequest,
   { params: paramsPromise }: { params: Promise<{ id: string }> }
 ) {
   try {

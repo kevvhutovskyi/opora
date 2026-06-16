@@ -11,6 +11,7 @@ interface ProductListProps {
   popularProductsRecords: Record[] | null;
   onNavigateToRequests: () => void;
   onNavigateToJsonUpload: () => void;
+  onNavigateToBulkImages: () => void;
   onNavigateToFilters: () => void;
   onNavigateToBanners: () => void;
   onCreateProduct: () => void;
@@ -23,6 +24,7 @@ export default function ProductList({
   popularProductsRecords,
   onNavigateToRequests,
   onNavigateToJsonUpload,
+  onNavigateToBulkImages,
   onNavigateToFilters,
   onNavigateToBanners,
   onCreateProduct,
@@ -80,6 +82,7 @@ export default function ProductList({
           <Box display="flex" style={{ gap: 8 }}>
             <Button icon="aiAssistant" onClick={onNavigateToRequests}>Заявки</Button>
             <Button icon="upload" onClick={onNavigateToJsonUpload}>JSON</Button>
+            <Button icon="attachment" onClick={onNavigateToBulkImages}>Фото</Button>
             <Button icon="filter" onClick={onNavigateToFilters}>Фільтри</Button>
             <Button icon="gallery" onClick={onNavigateToBanners}>Банери</Button>
             <Button variant="primary" icon="plus" onClick={onCreateProduct}>Додати товар</Button>
