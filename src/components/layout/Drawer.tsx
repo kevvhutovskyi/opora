@@ -65,7 +65,7 @@ export default function Drawer({ isOpen, onClose, onCartClick, children, positio
         </div>
 
         {/* Змінний контент (Меню, Фільтри, Сортування) */}
-        <div className="flex-1 overflow-y-auto px-6 py-8">
+        <div className="flex-1 overflow-y-auto sm:overflow-hidden px-3 py-5">
           {children}
         </div>
       </div>

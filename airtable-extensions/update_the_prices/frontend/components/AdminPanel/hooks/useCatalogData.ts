@@ -12,6 +12,8 @@ export function useCatalogData() {
   const popularProductsTable = base.getTableByNameIfExists(TABLES.popularProducts);
   const requestsTable = base.getTableByNameIfExists(TABLES.requests);
   const bannersTable = base.getTableByNameIfExists(TABLES.banners);
+  const commentsTable = base.getTableByNameIfExists(TABLES.comments);
+  const optionFiltersTable = base.getTableByNameIfExists(TABLES.optionFilters);
 
   const productsRecords = useRecords(productsTable);
   const variantsRecords = useRecords(variantsTable);
@@ -23,6 +25,8 @@ export function useCatalogData() {
     sorts: [{ field: FIELDS.request.number, direction: 'desc' }],
   });
   const bannersRecords = useRecords(bannersTable);
+  const commentsRecords = useRecords(commentsTable);
+  const optionFiltersRecords = useRecords(optionFiltersTable);
 
   return {
     isReady: !!productsTable, // Simple flag to check if the base loaded
@@ -32,6 +36,8 @@ export function useCatalogData() {
       specsTable,
       requestsTable,
       bannersTable,
+      commentsTable,
+      optionFiltersTable,
     },
     records: {
       productsRecords,
@@ -42,6 +48,8 @@ export function useCatalogData() {
       popularProductsRecords,
       requestsRecords,
       bannersRecords,
+      commentsRecords,
+      optionFiltersRecords,
     },
   };
 }

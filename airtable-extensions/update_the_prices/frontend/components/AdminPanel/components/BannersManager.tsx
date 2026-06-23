@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Box, Button, Heading, Text } from '@airtable/blocks/ui';
-import { Record, Table } from '@airtable/blocks/models';
+import { FieldType, Record, Table } from '@airtable/blocks/models';
 import { mediaApi } from '../services/mediaApi';
 import { BANNER_TYPES, CATEGORY_ITEMS, FIELDS, TABLES, UI } from '../constants';
 import { Card, Section } from './ui';
@@ -76,10 +76,29 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
     );
   }
 
+  // Гарантуємо, що в single-select полі «Тип» існує потрібна опція перед створенням запису.
+  // Без цього createRecordAsync падає — саме це ламало завантаження для категорій:
+  // опції «Категорія» могло не бути серед варіантів поля (на відміну від «Слайдер»/«Каталог»).
+  const ensureBannerType = async (typeName: string) => {
+    const field = bannersTable.getFieldByNameIfExists(FIELDS.banner.type);
+    // Якщо це не single-select (напр. текстове поле) — додавати опцію не треба.
+    if (!field || field.type !== FieldType.SINGLE_SELECT) return;
+    const choices = (field.options?.choices as Array<{ name: string }>) ?? [];
+    if (choices.some((c) => c.name === typeName)) return;
+    const updated = { choices: [...choices, { name: typeName }] };
+    if (!field.hasPermissionToUpdateOptions(updated)) {
+      throw new Error(
+        `У полі «${FIELDS.banner.type}» немає опції «${typeName}», і бракує прав додати її. Додайте цю опцію вручну в Airtable.`
+      );
+    }
+    await field.updateOptionsAsync(updated);
+  };
+
   const addSlide = async (file: File) => {
     setBusy(true);
     try {
       const url = await mediaApi.uploadBanner(file);
+      await ensureBannerType(BANNER_TYPES.slider);
       const nextOrder = sliderRecords.length
         ? Math.max(...sliderRecords.map((r) => Number(r.getCellValue(FIELDS.banner.order)) || 0)) + 1
         : 1;
@@ -92,7 +111,7 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
       });
     } catch (e) {
       console.error(e);
-      alert('Не вдалося завантажити зображення.');
+      alert(e instanceof Error ? e.message : 'Не вдалося завантажити зображення.');
     } finally {
       setBusy(false);
     }
@@ -158,6 +177,7 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
         await bannersTable.updateRecordAsync(catalogRecord.id, { [FIELDS.banner.image]: url });
         if (oldUrl && oldUrl !== url) await mediaApi.deleteBanner(oldUrl).catch(() => {});
       } else {
+        await ensureBannerType(BANNER_TYPES.catalog);
         await bannersTable.createRecordAsync({
           [FIELDS.banner.name]: 'Каталог Hero',
           [FIELDS.banner.type]: { name: BANNER_TYPES.catalog },
@@ -167,7 +187,7 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
       }
     } catch (e) {
       console.error(e);
-      alert('Не вдалося завантажити зображення.');
+      alert(e instanceof Error ? e.message : 'Не вдалося завантажити зображення.');
     } finally {
       setBusy(false);
     }
@@ -192,6 +212,7 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
         await bannersTable.updateRecordAsync(existing.id, { [FIELDS.banner.image]: url });
         if (oldUrl && oldUrl !== url) await mediaApi.deleteBanner(oldUrl).catch(() => {});
       } else {
+        await ensureBannerType(BANNER_TYPES.category);
         await bannersTable.createRecordAsync({
           [FIELDS.banner.name]: categoryName,
           [FIELDS.banner.type]: { name: BANNER_TYPES.category },
@@ -201,7 +222,7 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
       }
     } catch (e) {
       console.error(e);
-      alert('Не вдалося завантажити зображення.');
+      alert(e instanceof Error ? e.message : 'Не вдалося завантажити зображення.');
     } finally {
       setBusy(false);
     }
@@ -337,9 +358,11 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
                       <input type="file" accept="image/*" disabled={busy} onChange={onPick((f) => setCategoryImage(name, f))} />
                     </Box>
                     {url && (
-                      <Button size="small" icon="trash" variant="danger" disabled={busy} onClick={() => removeCategoryImage(name)}>
-                        Видалити фото
-                      </Button>
+                      <Box>
+                        <Button size="small" icon="trash" variant="danger" disabled={busy} onClick={() => removeCategoryImage(name)}>
+                          Видалити фото
+                        </Button>
+                      </Box>
                     )}
                   </Box>
                 </Box>

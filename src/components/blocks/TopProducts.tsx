@@ -29,7 +29,7 @@ export default function TopProducts({ products }: TopProductsProps) {
       <div className="max-w-7xl mx-auto px-0 md:px-0d">
         
         {/* Шапка секції */}
-        <div className="flex justify-between items-center mb-8 md:mb-10">
+        <div className="flex justify-between items-center mb-5 md:mb-7">
           <h2 className="text-2xl md:text-3xl font-medium text-opora-brown">
             Найпопулярніші товари
           </h2>
@@ -55,9 +55,9 @@ export default function TopProducts({ products }: TopProductsProps) {
         {/* Контейнер з картками */}
         <div 
           ref={scrollContainerRef}
-          className="flex px-2 gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-4"
+          className="flex px-2  gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory scroll-pl-4 hide-scrollbar pb-4 pt-2"
         >
-          {products.map((product) => {
+          {products.map((product, index) => {
             // Формуємо єдиний об'єкт
             const productDetails: CatalogProductDetails = {
               id: product.id,
@@ -74,7 +74,7 @@ export default function TopProducts({ products }: TopProductsProps) {
                 className="shrink-0 w-65  md:w-75 lg:w-[320px] snap-start"
               >
                 {/* Передаємо єдиний проп `product` */}
-                <ProductCard product={productDetails} />
+                <ProductCard product={productDetails} initialIndex={index} />
               </div>
             );
           })}

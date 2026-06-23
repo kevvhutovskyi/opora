@@ -4,42 +4,45 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { CatalogProductDetails, VariationImage, MOCK_PRODUCT_IMAGES } from '@/lib';
-import { toHue } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics/umami';
 
 export default function ProductCard({
   product,
   selectedColors = [],
+  initialIndex = 0,
 }: {
   product: CatalogProductDetails;
   selectedColors?: string[];
+  initialIndex?: number;
 }) {
   // Чи відповідає варіація хоча б одному з обраних у фільтрі кольорів
   const matchesFilter = (variation: VariationImage) =>
     selectedColors.length > 0 &&
     (variation.allHexes ?? []).some((h) => selectedColors.includes(h.name));
 
-  // Свотч може бути одинарним або розділеним навпіл (оббивка + ніжки).
-  // Сортуємо за основним кольором (перший hex), розділені — з другим кольором як tiebreaker.
+  // Порядок варіацій задається в адмінці (linked-масив на товарі) — лишаємо як є.
   // Якщо застосовано фільтр кольору — варіації, що йому відповідають, виносимо вперед,
-  // щоб обрані кольори були видні одразу на картці.
+  // щоб обрані кольори були видні одразу на картці (Array.sort у V8 стабільний).
   const variations = useMemo(() => {
-    const sorted = [...(product.variations || [])].sort((a, b) => {
-      const ah = a.allHexes ?? [], bh = b.allHexes ?? [];
-      return (
-        toHue(ah[0]?.hex) - toHue(bh[0]?.hex) ||
-        toHue(ah[1]?.hex) - toHue(bh[1]?.hex)
-      );
-    });
-    if (selectedColors.length === 0) return sorted;
-    return sorted.sort((a, b) => Number(matchesFilter(b)) - Number(matchesFilter(a)));
+    const base = product.variations || [];
+    if (selectedColors.length === 0) return base;
+    return [...base].sort((a, b) => Number(matchesFilter(b)) - Number(matchesFilter(a)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.variations, selectedColors]);
 
+  // Перші 4 варіації в заданому порядку; rotate so the initialIndex-th swatch is first.
+  const swatchesToShow = useMemo(() => {
+    const base = variations.slice(0, 4);
+    if (initialIndex === 0 || base.length === 0) return base;
+    const pivot = initialIndex % base.length;
+    return [...base.slice(pivot), ...base.slice(0, pivot)];
+  }, [variations, initialIndex]);
+
   // State to track which color variation the user is currently looking at —
-  // за замовчуванням показуємо першу варіацію, що відповідає фільтру (якщо є)
+  // за замовчуванням показуємо першу варіацію, що відповідає фільтру (якщо є),
+  // інакше — першу видиму на картці (перший кружечок).
   const [activeVariation, setActiveVariation] = useState<VariationImage | undefined>(
-    variations.find(matchesFilter) ?? variations[0]
+    variations.find(matchesFilter) ?? swatchesToShow[0] ?? variations[0]
   );
 
   // Коли змінюється фільтр (а товар лишається у списку) — переключаємо активну
@@ -58,11 +61,6 @@ export default function ProductCard({
   const primaryImage = cardImages?.[0] || MOCK_PRODUCT_IMAGES[0];
   const secondaryImage = cardImages?.[1] || MOCK_PRODUCT_IMAGES[1] || primaryImage;
 
-  // Pick 4 variations evenly spaced across the hue-sorted array — maximally diverse palette
-  const swatchesToShow = useMemo(() => {
-    return [2, 3, 7, 10].map(i => variations[i]).filter(Boolean);
-  }, [variations]);
-
   // Helper to render single or split-color circles
   const getSwatchStyle = (variation: any) => {
     const hexes = variation.allHexes;
@@ -74,12 +72,12 @@ export default function ProductCard({
   };
 
   return (
-    <div className="shrink-0 w-full group">
+    <div className="shrink-0 w-full group cursor-pointer">
       
       {/* Product Link Area (Image + Text) */}
       <Link
         href={product.href}
-        className="block w-full"
+        className="block w-full cursor-pointer"
         onClick={() => trackEvent("Клік по товару", { name: product.name, href: product.href })}
       >
         {/* Image Container with Hover Crossfade */}

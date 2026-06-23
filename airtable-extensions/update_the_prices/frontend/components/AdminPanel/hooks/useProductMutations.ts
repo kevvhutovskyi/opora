@@ -4,6 +4,7 @@ import { toLinks } from '../utils';
 
 interface ProductFields {
   model: string;
+  catalog: string;
   description: string;
 }
 
@@ -23,6 +24,7 @@ export function useProductMutations() {
 
     const airtableFields = {
       [FIELDS.product.model]: fields.model,
+      [FIELDS.product.catalog]: fields.catalog,
       [FIELDS.product.description]: fields.description,
     };
 
@@ -81,11 +83,23 @@ export function useProductMutations() {
     await prodSpecsTable.deleteRecordAsync(prodSpecId);
   };
 
+  // Перезаписує порядок linked-поля на товарі (варіації / характеристики).
+  // Цей порядок storefront читає напряму — тож керує порядком на картці та сторінці товару.
+  const reorderProductLinks = async (
+    productId: string,
+    fieldName: string,
+    orderedIds: string[]
+  ): Promise<void> => {
+    if (!productsTable) throw new Error(`Таблиця "${TABLES.products}" не знайдена`);
+    await productsTable.updateRecordAsync(productId, { [fieldName]: toLinks(orderedIds) });
+  };
+
   return {
     saveProduct,
     deleteProduct,
     togglePopularStatus,
     addProductSpec,
     removeProductSpec,
+    reorderProductLinks,
   };
 }

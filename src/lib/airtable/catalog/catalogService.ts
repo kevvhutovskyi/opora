@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
-import { tableOptions, tableProducts, tableProductSpecs, tableSpecs, tableVariants } from "../tables";
+import { FieldSet, Records } from "airtable";
+import { tableOptionFilters, tableOptions, tableProducts, tableProductSpecs, tableSpecs, tableVariants } from "../tables";
 import { fetchRecordsByIds, indexById, parseImageUrls } from "../helpers";
 import { CATEGORY_TABLES, FIELDS } from "../schema";
 import { ProductType } from "./types";
@@ -17,9 +18,7 @@ export interface CatalogProductDetails {
 export interface FilterParamsWithArrays {
   type: ProductType;
   sort?: string;
-  seatColors?: string[];
-  legColors?: string[];
-  tableColors?: string[];
+  optionFilters?: Record<string, string[]>; // groupName → selected full option names
   specFilters?: Record<string, string[]>; // specName → selected values
 }
 
@@ -28,15 +27,66 @@ export interface SpecFilterGroup {
   values: string[];
 }
 
+export interface FilterOption {
+  label: string; // full option name (matches allOptionNames), e.g. "Колір сидіння: Чорний"
+  hex?: string;
+  categories: ProductType[]; // категорії товарів, що використовують цю опцію
+}
+
+export interface OptionFilterGroup {
+  groupName: string;
+  categories: ProductType[]; // адмін-обмеження групи; empty = усі категорії
+  values: FilterOption[];
+}
+
+type ProductRecords = Records<FieldSet>;
+
+// Варіації → опції (опції залежать від варіацій, тож ланцюжок послідовний)
+async function loadVariationsAndOptions(productsData: ProductRecords) {
+  const variationIds = productsData.flatMap((p) => (p.get(FIELDS.product.variants) as string[]) || []);
+  const variationsById = indexById(await fetchRecordsByIds(tableVariants, variationIds));
+
+  const optionIds = [...variationsById.values()].flatMap(
+    (v) => (v.get(FIELDS.variant.options) as string[]) || []
+  );
+  const optionsById = indexById(await fetchRecordsByIds(tableOptions, optionIds));
+
+  return { variationsById, optionsById };
+}
+
+// productId → (specName → value)
+async function buildProductSpecMap(productsData: ProductRecords) {
+  const allProdSpecIds = productsData.flatMap((p) => (p.get(FIELDS.product.specs) as string[]) || []);
+  const prodSpecById = indexById(await fetchRecordsByIds(tableProductSpecs, allProdSpecIds));
+
+  const specIds = [...prodSpecById.values()].flatMap(
+    (ps) => (ps.get(FIELDS.productSpec.spec) as string[]) || []
+  );
+  const specsById = indexById(await fetchRecordsByIds(tableSpecs, specIds));
+
+  const productSpecMap = new Map<string, Map<string, string>>();
+  for (const product of productsData) {
+    const specValueMap = new Map<string, string>();
+    for (const psId of (product.get(FIELDS.product.specs) as string[]) || []) {
+      const ps = prodSpecById.get(psId);
+      const specId = ps && ((ps.get(FIELDS.productSpec.spec) as string[]) || [])[0];
+      const spec = specId && specsById.get(specId);
+      if (!ps || !spec) continue;
+      const name = String(spec.get(FIELDS.spec.name) || "");
+      if (name) specValueMap.set(name, String(ps.get(FIELDS.productSpec.value) || ""));
+    }
+    productSpecMap.set(product.id, specValueMap);
+  }
+  return productSpecMap;
+}
+
 async function fetchFilteredCatalog(
   params: FilterParamsWithArrays
 ): Promise<CatalogProductDetails[]> {
   const {
     type,
     sort = "default",
-    seatColors = [],
-    legColors = [],
-    tableColors = [],
+    optionFilters = {},
     specFilters = {},
   } = params;
 
@@ -51,54 +101,12 @@ async function fetchFilteredCatalog(
 
   if (productsData.length === 0) return [];
 
-  // 2. Підтягуємо всі варіації та опції одним проходом, індексуємо за id
-  const variationIds = productsData.flatMap((p) => (p.get(FIELDS.product.variants) as string[]) || []);
-  const variationsById = indexById(await fetchRecordsByIds(tableVariants, variationIds));
-
-  const optionIds = [...variationsById.values()].flatMap(
-    (v) => (v.get(FIELDS.variant.options) as string[]) || []
-  );
-  const optionsById = indexById(await fetchRecordsByIds(tableOptions, optionIds));
-
-  // 2b. Якщо є фільтри за характеристиками — підвантажуємо ProductSpecs + Specs
-  const hasSpecFilters = Object.keys(specFilters).some((k) => specFilters[k].length > 0);
-  let productSpecMap = new Map<string, Map<string, string>>(); // productId → (specName → value)
-
-  if (hasSpecFilters) {
-    const allProdSpecIds = productsData.flatMap(
-      (p) => (p.get(FIELDS.product.specs) as string[]) || []
-    );
-    const prodSpecRecords = await fetchRecordsByIds(tableProductSpecs, allProdSpecIds);
-
-    const specIds = prodSpecRecords.flatMap(
-      (ps) => (ps.get(FIELDS.productSpec.spec) as string[]) || []
-    );
-    const specsById = indexById(await fetchRecordsByIds(tableSpecs, specIds));
-
-    // Build map: productId → (specName → value)
-    // ProductSpec has a linked "Товар" field pointing back to the product.
-    // We use product.specs array to know which prodSpecRecords belong to each product.
-    const prodSpecById = indexById(prodSpecRecords);
-
-    for (const product of productsData) {
-      const prodSpecIds = (product.get(FIELDS.product.specs) as string[]) || [];
-      const specValueMap = new Map<string, string>();
-
-      for (const psId of prodSpecIds) {
-        const ps = prodSpecById.get(psId);
-        if (!ps) continue;
-        const specId = ((ps.get(FIELDS.productSpec.spec) as string[]) || [])[0];
-        if (!specId) continue;
-        const spec = specsById.get(specId);
-        if (!spec) continue;
-        const name = String(spec.get(FIELDS.spec.name) || "");
-        const value = String(ps.get(FIELDS.productSpec.value) || "");
-        if (name) specValueMap.set(name, value);
-      }
-
-      productSpecMap.set(product.id, specValueMap);
-    }
-  }
+  // 2. Варіації/опції та (за потреби) характеристики — незалежні гілки, тягнемо паралельно
+  const hasSpecFilters = Object.values(specFilters).some((v) => v.length > 0);
+  const [{ variationsById, optionsById }, productSpecMap] = await Promise.all([
+    loadVariationsAndOptions(productsData),
+    hasSpecFilters ? buildProductSpecMap(productsData) : Promise.resolve(null),
+  ]);
 
   // 3. Збираємо повні товари; пропускаємо ті, що без варіацій
   let catalog = productsData
@@ -142,12 +150,12 @@ async function fetchFilteredCatalog(
     })
     .filter((product) => product.variations.length > 0);
 
-  // 4. Фільтрація за кольорами (in-memory)
-  const colorFilters = [seatColors, legColors, tableColors].filter((c) => c.length > 0);
-  if (colorFilters.length > 0) {
+  // 4. Фільтрація за опціями/кольорами (in-memory) — AND між групами, OR всередині групи
+  const optionFilterGroups = Object.values(optionFilters).filter((vals) => vals.length > 0);
+  if (optionFilterGroups.length > 0) {
     catalog = catalog.filter((product) =>
-      colorFilters.every((colors) =>
-        colors.some((c) => product.allOptionNames.includes(c))
+      optionFilterGroups.every((names) =>
+        names.some((name) => product.allOptionNames.includes(name))
       )
     );
   }
@@ -155,7 +163,7 @@ async function fetchFilteredCatalog(
   // 4b. Фільтрація за характеристиками
   if (hasSpecFilters) {
     catalog = catalog.filter((product) => {
-      const specValueMap = productSpecMap.get(product.id);
+      const specValueMap = productSpecMap?.get(product.id);
       return Object.entries(specFilters).every(([specName, selectedValues]) => {
         if (selectedValues.length === 0) return true;
         const productValue = specValueMap?.get(specName);
@@ -183,27 +191,75 @@ async function fetchFilteredCatalog(
   return catalog.map(({ createdAt, ...rest }) => rest);
 }
 
+// Стільці/Столи/Табуретки → Chair/Table/Nightstand (для зіставлення з activeType на storefront)
+const CATALOG_TO_TYPE: Record<string, ProductType> = Object.fromEntries(
+  Object.entries(CATEGORY_TABLES)
+    .filter(([type]) => type !== "All")
+    .map(([type, label]) => [label, type as ProductType])
+);
+
 async function fetchFilterOptions() {
-  // Кольорові опції — як і раніше
-  const optionsData = await tableOptions.select().all();
+  // Групи опцій-фільтрів налаштовуються в адмінці (таблиця «Фільтри Опцій»).
+  // Кожен рядок = увімкнена група; «Категорії» — необов'язкове обмеження групи.
+  const [configRows, productsData] = await Promise.all([
+    tableOptionFilters.select().all(),
+    tableProducts.select().all(),
+  ]);
 
-  const seatMap = new Map<string, string>();
-  const legMap = new Map<string, string>();
-  const tableMap = new Map<string, string>();
+  // groupName → адмін-обмеження категорій (порожньо = всі)
+  const groupCategories = new Map<string, ProductType[]>();
+  for (const row of configRows) {
+    const groupName = String(row.get(FIELDS.optionFilter.name) || "").trim();
+    if (!groupName) continue;
+    // «Категорії» — текст через кому (напр. "Стільці, Столи"); порожньо = всі категорії.
+    const cats = String(row.get(FIELDS.optionFilter.categories) || "")
+      .split(",")
+      .map((label) => CATALOG_TO_TYPE[label.trim()])
+      .filter(Boolean);
+    groupCategories.set(groupName, cats);
+  }
 
-  optionsData.forEach((record) => {
-    const name = String(record.get(FIELDS.option.name) || "").trim();
-    if (!name) return;
-    const hex = String(record.get(FIELDS.option.value) || "").trim();
-    const lower = name.toLowerCase();
+  // Повна назва опції → { hex, категорії товарів, що її реально використовують }.
+  // Категорії визначаємо з товарів: опція належить категорії, якщо її має товар цієї категорії.
+  const { variationsById, optionsById } = await loadVariationsAndOptions(productsData);
+  const optionInfo = new Map<string, { hex: string; cats: Set<ProductType> }>();
+  for (const product of productsData) {
+    const cat = CATALOG_TO_TYPE[String(product.get(FIELDS.product.catalog) || "").trim()];
+    if (!cat) continue;
+    for (const vId of (product.get(FIELDS.product.variants) as string[]) || []) {
+      const variant = variationsById.get(vId);
+      if (!variant) continue;
+      for (const oId of (variant.get(FIELDS.variant.options) as string[]) || []) {
+        const opt = optionsById.get(oId);
+        if (!opt) continue;
+        const name = String(opt.get(FIELDS.option.name) || "").trim();
+        if (!name || !name.includes(":")) continue;
+        let info = optionInfo.get(name);
+        if (!info) {
+          info = { hex: String(opt.get(FIELDS.option.value) || "").trim(), cats: new Set() };
+          optionInfo.set(name, info);
+        }
+        info.cats.add(cat);
+      }
+    }
+  }
 
-    if (lower.includes("оббивки") || lower.includes("сидіння")) seatMap.set(name, hex);
-    else if (lower.includes("ніжок") || lower.includes("ніжки")) legMap.set(name, hex);
-    else if (lower.includes("стол")) tableMap.set(name, hex);
-  });
+  // Групуємо значення за префіксом назви до ":" (лише для увімкнених груп).
+  const valuesByGroup = new Map<string, FilterOption[]>();
+  for (const [name, info] of optionInfo) {
+    const groupName = name.split(":")[0].trim();
+    if (!groupCategories.has(groupName)) continue;
+    if (!valuesByGroup.has(groupName)) valuesByGroup.set(groupName, []);
+    valuesByGroup.get(groupName)!.push({ label: name, hex: info.hex, categories: [...info.cats] });
+  }
 
-  const toOptions = (map: Map<string, string>) =>
-    Array.from(map, ([label, hex]) => ({ label, hex }));
+  const optionFilters: OptionFilterGroup[] = [...groupCategories]
+    .map(([groupName, categories]) => ({
+      groupName,
+      categories,
+      values: (valuesByGroup.get(groupName) || []).sort((a, b) => a.label.localeCompare(b.label)),
+    }))
+    .filter((g) => g.values.length > 0);
 
   // Характеристики-фільтри — тільки ті, де Фільтрується = true
   const filterableSpecs = await tableSpecs
@@ -238,9 +294,7 @@ async function fetchFilterOptions() {
   }
 
   return {
-    seatColors: toOptions(seatMap),
-    legColors: toOptions(legMap),
-    tableColors: toOptions(tableMap),
+    optionFilters,
     specFilters,
   };
 }

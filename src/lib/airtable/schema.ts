@@ -11,6 +11,7 @@ export const TABLES = {
   topProducts: "Найпопулярніші Товари",
   comments: "Коментарі",
   banners: "Банери",
+  optionFilters: "Фільтри Опцій",
 } as const;
 
 // Значення поля «Тип» у таблиці «Банери» (single select).
@@ -24,7 +25,7 @@ export const BANNER_TYPES = {
 export const CATEGORY_TABLES = {
   Chair: "Стільці",
   Table: "Столи",
-  Nightstand: "Тумбочки",
+  Nightstand: "Табуретки",
   All: "Всі",
 } as const;
 
@@ -73,6 +74,10 @@ export const FIELDS = {
   spec: {
     name: "Назва",
     filterable: "Фільтрується",
+  },
+  optionFilter: {
+    name: "Назва",
+    categories: "Категорії",
   },
   topProduct: {
     products: "Товари",

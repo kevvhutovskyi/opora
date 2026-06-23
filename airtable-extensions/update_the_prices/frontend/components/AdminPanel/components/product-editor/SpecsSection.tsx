@@ -1,23 +1,34 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box, Button, Input, Switch, Select, Text } from '@airtable/blocks/ui';
 import { Record } from '@airtable/blocks/models';
 import { useProductMutations } from '../../hooks/useProductMutations';
+import { getLinkedIds } from '../../utils';
 import { FIELDS, UI } from '../../constants';
 import { Section } from '../ui';
 
 interface SpecsSectionProps {
   productId: string;
+  productRecord: Record | null;
   productSpecs: Record[] | null;
   allSpecs: Record[] | null;
 }
 
-export function SpecsSection({ productId, productSpecs, allSpecs }: SpecsSectionProps): JSX.Element {
-  const { addProductSpec, removeProductSpec } = useProductMutations();
+export function SpecsSection({ productId, productRecord, productSpecs, allSpecs }: SpecsSectionProps): JSX.Element {
+  const { addProductSpec, removeProductSpec, reorderProductLinks } = useProductMutations();
 
   const [isCreating, setIsCreating] = useState(false);
   const [selectedSpecId, setSelectedSpecId] = useState('');
   const [newSpecName, setNewSpecName] = useState('');
   const [specValue, setSpecValue] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  // Порядок = linked-масив «Товари/Характеристики» на товарі (його читає сторінка товару).
+  const specs = useMemo(() => {
+    const list = productSpecs || [];
+    const order = productRecord ? getLinkedIds(productRecord, FIELDS.product.specs) : [];
+    const pos = new Map(order.map((id, i) => [id, i]));
+    return [...list].sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
+  }, [productSpecs, productRecord]);
 
   const handleAdd = async () => {
     await addProductSpec(productId, specValue, selectedSpecId, newSpecName);
@@ -26,14 +37,34 @@ export function SpecsSection({ productId, productSpecs, allSpecs }: SpecsSection
     setSelectedSpecId('');
   };
 
+  const moveSpec = async (index: number, dir: 'up' | 'down') => {
+    const target = dir === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= specs.length) return;
+    const ids = specs.map((s) => s.id);
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    setBusy(true);
+    try {
+      await reorderProductLinks(productId, FIELDS.product.specs, ids);
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося змінити порядок.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Section title="Характеристики">
-      {productSpecs?.map((spec) => (
+      {specs.map((spec, idx, arr) => (
         <Box key={spec.id} display="flex" justifyContent="space-between" alignItems="center" marginBottom={2}>
           <Text>
             {spec.getCellValueAsString(FIELDS.productSpec.spec)}: {spec.getCellValueAsString(FIELDS.productSpec.value)}
           </Text>
-          <Button size="small" icon="trash" onClick={() => removeProductSpec(spec.id)} />
+          <Box display="flex" alignItems="center" style={{ gap: 4 }}>
+            <Button size="small" icon="chevronUp" disabled={busy || idx === 0} onClick={() => moveSpec(idx, 'up')} aria-label="Вгору" />
+            <Button size="small" icon="chevronDown" disabled={busy || idx === arr.length - 1} onClick={() => moveSpec(idx, 'down')} aria-label="Вниз" />
+            <Button size="small" icon="trash" onClick={() => removeProductSpec(spec.id)} />
+          </Box>
         </Box>
       ))}
 

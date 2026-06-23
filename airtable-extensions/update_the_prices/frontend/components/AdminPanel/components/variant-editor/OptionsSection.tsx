@@ -22,7 +22,8 @@ export function OptionsSection({
 }: OptionsSectionProps): JSX.Element {
   const [isCreating, setIsCreating] = useState(false);
   const [selectedOptId, setSelectedOptId] = useState('');
-  const [newOptName, setNewOptName] = useState('');
+  const [newOptGroup, setNewOptGroup] = useState('');
+  const [newOptColor, setNewOptColor] = useState('');
   const [newOptValue, setNewOptValue] = useState('');
 
   const optionIds = activeVariant ? getLinkedIds(activeVariant, FIELDS.variant.options) : [];
@@ -32,9 +33,9 @@ export function OptionsSection({
     if (!variantsTable || !optionsTable) return;
     let optionIdToLink = selectedOptId;
 
-    if (isCreating && newOptName && newOptValue) {
+    if (isCreating && newOptGroup && newOptColor && newOptValue) {
       optionIdToLink = await optionsTable.createRecordAsync({
-        [FIELDS.option.name]: newOptName,
+        [FIELDS.option.name]: `${newOptGroup.trim()}: ${newOptColor.trim()}`,
         [FIELDS.option.value]: newOptValue,
       });
     }
@@ -48,7 +49,8 @@ export function OptionsSection({
       [FIELDS.variant.options]: toLinks([...optionIds, optionIdToLink]),
     });
 
-    setNewOptName('');
+    setNewOptGroup('');
+    setNewOptColor('');
     setNewOptValue('');
     setIsCreating(false);
     setSelectedOptId('');
@@ -79,8 +81,9 @@ export function OptionsSection({
         <Switch value={isCreating} onChange={setIsCreating} label="Створити нову опцію?" marginBottom={2} />
         {isCreating ? (
           <Box display="flex" marginBottom={2} style={{ gap: 8 }}>
-            <Input placeholder="Назва" value={newOptName} onChange={(e) => setNewOptName(e.target.value)} />
-            <Input placeholder="HEX/Значення" value={newOptValue} onChange={(e) => setNewOptValue(e.target.value)} />
+            <Input placeholder="Група (напр. Колір ніжок)" value={newOptGroup} onChange={(e) => setNewOptGroup(e.target.value)} />
+            <Input placeholder="Колір (напр. Чорний)" value={newOptColor} onChange={(e) => setNewOptColor(e.target.value)} />
+            <Input placeholder="#HEX/Значення" value={newOptValue} onChange={(e) => setNewOptValue(e.target.value)} />
           </Box>
         ) : (
           <Select

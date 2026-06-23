@@ -60,10 +60,11 @@ export default function ProductEditor({
         <>
           <MarketingSection productId={productId} popularRecord={popularRecord} />
           <VideoSection productId={productId} productRecord={productRecord} />
-          <SpecsSection productId={productId} productSpecs={productSpecs} allSpecs={allSpecs} />
+          <SpecsSection productId={productId} productRecord={productRecord} productSpecs={productSpecs} allSpecs={allSpecs} />
           <VariantsSection
             variantsTable={variantsTable}
             productId={productId}
+            productRecord={productRecord}
             allVariants={allVariants}
             allOptions={allOptions}
             onEditVariant={onEditVariant}

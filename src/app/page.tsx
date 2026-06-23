@@ -1,5 +1,6 @@
 import Benefits from "@/components/blocks/Benefits";
 import Reviews from "@/components/blocks/Reviews";
+import RecentlyViewed from "@/components/blocks/RecentlyViewed";
 import TopProducts from "@/components/blocks/TopProducts";
 import Categories from "@/components/layout/Categories";
 import HeroSlider from "@/components/layout/Slider";
@@ -20,9 +21,8 @@ export default async function Home() {
 			<HeroSlider images={sliderImages} />
 			<TopProducts products={topProducts} />
 			<Categories images={categoryImages} />
-			<div className="px-8 md:px-12">
-				<Reviews />
-			</div>
+			<Reviews />
+			<RecentlyViewed />
 			<Benefits />
 		</div>
 	);

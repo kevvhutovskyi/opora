@@ -6,7 +6,10 @@ import { useCartStore } from "@/store/cartStore";
 import { toHue } from "@/lib/utils";
 import { MOCK_PRODUCT_IMAGES } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics/umami";
+import { BenefitBoxIcon, BenefitColorsIcon, BenefitShieldIcon } from "@/components/ui/Icons";
 import Reviews from "@/components/blocks/Reviews";
+import RecentlyViewed from "@/components/blocks/RecentlyViewed";
+import { CatalogProductDetails } from "@/lib";
 import { Option, Product, Variant, hexColor } from "./types";
 import ProductGallery from "./ProductGallery";
 import BuyBox from "./BuyBox";
@@ -27,6 +30,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
   const [qty, setQty] = useState(1);
   const addItemToCart = useCartStore((state) => state.addItem);
+  const openCart = useCartStore((state) => state.openCart);
 
   const [openSections, setOpenSections] = useState(['desc']);
   const [toast, setToast] = useState<{ message: string; options: Option[] } | null>(null);
@@ -167,6 +171,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     };
 
     addItemToCart(itemPayload);
+    openCart();
     trackEvent("Додано до кошика", {
       product: product.model || product.name,
       sku: activeVariant.sku,
@@ -256,6 +261,20 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     return product.variants.some((v) => v.options[optionIndex]?.value === value && v.inStock);
   };
 
+  // Поточний товар у форматі картки каталогу — для секції «Ви раніше переглядали» (localStorage)
+  const recentlyViewedCurrent: CatalogProductDetails = {
+    id: product.id,
+    name: product.model || product.name,
+    price: product.minPrice || product.variants?.[0]?.price || 0,
+    href: `/catalog/${product.id}`,
+    variations: product.variants.map((v) => ({
+      id: v.id,
+      allHexes: v.options.map((o) => ({ hex: hexColor(o.value), name: o.name })),
+      images: v.images,
+      imagesCompressed: v.imagesCompressed,
+    })),
+  };
+
   return (
     <main className="min-h-screen bg-opora-white text-opora-brown">
       <div className="max-w-7xl mx-auto px-4 pt-24 md:pt-32 pb-6 md:pb-12 grid grid-cols-1 lg:grid-cols-2 gap-x-16 gap-y-12">
@@ -287,6 +306,21 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 trackEvent("Відтворено відео", { product: product.model || product.name });
               }}
             />
+            {/* Немає відео збірки — заповнюємо порожнечу під блоком покупки гарантіями. */}
+            {!product.assemblyVideoUrl && (
+              <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[
+                  { icon: <BenefitBoxIcon className="w-7 h-7 stroke-current" />, title: "Доставка по всій Україні" },
+                  { icon: <BenefitShieldIcon className="w-7 h-7 stroke-current" />, title: "Гарантія якості" },
+                  { icon: <BenefitColorsIcon className="w-7 h-7 stroke-current" />, title: "Колір на будь-який смак" },
+                ].map((b) => (
+                  <div key={b.title} className="flex flex-col items-center justify-center text-center gap-2 p-4 rounded-xl bg-opora-softBeige/60 text-opora-brown">
+                    <span className="shrink-0">{b.icon}</span>
+                    <span className="text-sm font-medium leading-tight">{b.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -302,9 +336,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       </div>
 
       {/* ВІДГУКИ — на всю ширину під сіткою */}
-      <div className="pb-12 md:pb-0 px-8 md:px-12">
-        <Reviews variation={product.model || product.name} />
-      </div>
+      <Reviews variation={product.model || product.name} />
+
+      {/* ВИ РАНІШЕ ПЕРЕГЛЯДАЛИ — історія з localStorage, під відгуками */}
+      <RecentlyViewed current={recentlyViewedCurrent} />
 
       {galleryMounted && (
         <FullscreenGallery
@@ -319,7 +354,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         />
       )}
 
-      <CartToast toast={toast} onClose={() => setToast(null)} />
+      {/* <CartToast toast={toast} onClose={() => setToast(null)} /> */}
 
     </main>
   );

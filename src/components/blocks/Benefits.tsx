@@ -22,7 +22,7 @@ const benefitsData = [
 
 export default function Benefits() {
   return (
-    <section className="py-12 md:pt-0 md:pb-20 bg-opora-menu w-full border-b border-opora-brown/10">
+    <section className="pt-6 pb-12 md:pb-16 bg-opora-menu w-full border-b border-opora-brown/10">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         
         {/* Контейнер: Колонка на мобільному, Ряд на десктопі */}

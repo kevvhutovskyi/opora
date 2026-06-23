@@ -2,7 +2,7 @@
 // NEXT_PUBLIC_SITE_URL треба виставити в продакшн-середовищі (Cloudflare),
 // інакше абсолютні URL у метаданих, sitemap та OG будуть вказувати на fallback.
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://opora.com.ua"
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://opora-furniture.com"
 ).replace(/\/$/, "");
 
 export const SITE_NAME = "OPORA";

@@ -21,21 +21,21 @@ export default async function CatalogPage({
   const type = (params.type as any) || "All";
   const sort = (params.sort as any) || "default";
   
-  const seatColors = params.seatColor ? (params.seatColor as string).split(',') : [];
-  const legColors = params.legColor ? (params.legColor as string).split(',') : [];
-  const tableColors = params.tableColor ? (params.tableColor as string).split(',') : [];
-
+  const optionFilters: Record<string, string[]> = {};
   const specFilters: Record<string, string[]> = {};
   for (const [key, value] of Object.entries(params)) {
-    if (key.startsWith("specFilter_") && typeof value === "string") {
+    if (typeof value !== "string") continue;
+    if (key.startsWith("optFilter_")) {
+      optionFilters[key.slice(10)] = value.split(",");
+    } else if (key.startsWith("specFilter_")) {
       specFilters[key.slice(11)] = value.split(",");
     }
   }
 
-  const categories = ["Chair"];
+  const categories = ["Chair", "Table"];
 
   const [products, filterOptions, catalogHeroImage] = await Promise.all([
-    getFilteredCatalog({ type, sort, seatColors, legColors, tableColors, specFilters }),
+    getFilteredCatalog({ type, sort, optionFilters, specFilters }),
     getFilterOptions(),
     getCatalogHeroImage()
   ]);

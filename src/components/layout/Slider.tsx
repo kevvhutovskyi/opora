@@ -27,12 +27,12 @@ const slidesContent = [
     image: "https://picsum.photos/1000/800",
     link: "/catalog",
   },
-  {
-    title: "Мистецтво затишку",
-    subtitle: "Створюйте атмосферу разом з нами.",
-    image: "https://picsum.photos/1000/800",
-    link: "/catalog",
-  },
+  // {
+  //   title: "Мистецтво затишку",
+  //   subtitle: "Створюйте атмосферу разом з нами.",
+  //   image: "https://picsum.photos/1000/800",
+  //   link: "/catalog",
+  // },
 ];
 
 type HeroSliderProps = {
@@ -92,19 +92,19 @@ export default function HeroSlider({ images = [] }: HeroSliderProps) {
           {/* Content Wrapper */}
           <div className="relative z-20 flex flex-col h-full px-4 md:px-8">
             
-            {/* Top Text Section (Pushed down on mobile, centered on desktop) */}
-            <div className="flex-1 flex flex-col items-center justify-start pt-40 md:pt-0 md:justify-center text-center">
+            {/* Text Section — зміщено вгору відносно центру */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center mb-30 md:mb-15">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-wide drop-shadow-sm">
                 {slide.title}
               </h1>
-              <p className="text-base md:text-lg text-white max-w-sm md:max-w-md mx-auto font-light drop-shadow-sm">
+              <p className="text-base md:text-lg text-white max-w-3xs md:max-w-md mx-auto font-light drop-shadow-sm">
                 {slide.subtitle}
               </p>
             </div>
 
-            {/* Bottom Section (Button and Dots) */}
-            <div className="flex flex-col items-center gap-8 pb-12 md:pb-16">
-              <Link 
+            {/* Button — на мобільному ближче до центру (~40%); на десктопі знизу */}
+            <div className="absolute inset-x-0 bottom-[35%] md:bottom-[28%] flex justify-center px-4 md:pb-16">
+              <Link
                 href={slide.link}
                 className="px-8 py-3 border border-white text-white hover:bg-white hover:text-opora-brown transition-colors duration-300 text-sm md:text-base tracking-wider"
               >
@@ -129,6 +129,20 @@ export default function HeroSlider({ images = [] }: HeroSliderProps) {
         className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white transition-colors"
       >
         <SliderArrowRightIcon className="w-5 h-5" />
+      </button>
+
+      {/* Scroll-down hint */}
+      <button
+        onClick={() => window.scrollBy({ top: window.innerHeight / 1.5, behavior: 'smooth' })}
+        aria-label="Прокрутити вниз до товарів"
+        className="absolute bottom-14 md:bottom-16 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 text-white/70 hover:text-white transition-colors animate-bounce"
+      >
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="-mt-4">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
       </button>
 
       {/* Pagination Dots (Rendered outside the map so they don't fade out during transitions) */}

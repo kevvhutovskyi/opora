@@ -8,11 +8,14 @@ import JsonUploader from './AdminPanel/components/JsonUploader';
 import BulkImageUploader from './AdminPanel/components/BulkImageUploader';
 import FiltersConfig from './AdminPanel/components/FiltersConfig';
 import BannersManager from './AdminPanel/components/BannersManager';
+import CommentsManager from './AdminPanel/components/CommentsManager';
+import { Sidebar, NAV_ITEMS } from './AdminPanel/components/Sidebar';
+import { Breadcrumbs, Crumb } from './AdminPanel/components/Breadcrumbs';
 import { useCatalogData } from './AdminPanel/hooks/useCatalogData';
 import { FIELDS, UI } from './AdminPanel/constants';
-import { isLinkedTo } from './AdminPanel/utils';
+import { getLinkedIds, isLinkedTo } from './AdminPanel/utils';
 
-type View = 'list' | 'edit_product' | 'edit_variant' | 'requests' | 'json_upload' | 'bulk_images' | 'filters_config' | 'banners';
+type View = 'list' | 'edit_product' | 'edit_variant' | 'requests' | 'json_upload' | 'bulk_images' | 'filters_config' | 'banners' | 'comments';
 
 export default function AdminPanel(): JSX.Element {
   const { isReady, tables, records } = useCatalogData();
@@ -23,6 +26,8 @@ export default function AdminPanel(): JSX.Element {
     specsTable = null,
     requestsTable = null,
     bannersTable = null,
+    commentsTable = null,
+    optionFiltersTable = null,
   } = tables || {};
 
   const {
@@ -34,6 +39,8 @@ export default function AdminPanel(): JSX.Element {
     popularProductsRecords = [],
     requestsRecords = [],
     bannersRecords = [],
+    commentsRecords = [],
+    optionFiltersRecords = [],
   } = records || {};
 
   // ROUTING & SELECTION STATE
@@ -57,6 +64,40 @@ export default function AdminPanel(): JSX.Element {
     [popularProductsRecords, selectedProductId]
   );
 
+  // Назва товару / варіації для хлібних крихт.
+  const productName = selectedProductRecord?.getCellValueAsString(FIELDS.product.model) || 'Новий товар';
+
+  const variantName = useMemo(() => {
+    if (!selectedVariantId) return 'Нова варіація';
+    const variant = variantsRecords?.find((v) => v.id === selectedVariantId);
+    if (!variant) return 'Варіація';
+    const optionsById = new Map((optionsRecords || []).map((o) => [o.id, o]));
+    const optionsLabel = getLinkedIds(variant, FIELDS.variant.options)
+      .map((id) => optionsById.get(id)?.getCellValueAsString(FIELDS.option.name))
+      .filter(Boolean)
+      .join(' / ');
+    return (
+      variant.getCellValueAsString(FIELDS.variant.name) ||
+      optionsLabel ||
+      variant.getCellValueAsString(FIELDS.variant.sku) ||
+      'Варіація'
+    );
+  }, [selectedVariantId, variantsRecords, optionsRecords]);
+
+  // Хлібні крихти для поточного view.
+  const breadcrumbs = useMemo<Crumb[]>(() => {
+    const toList: Crumb = { label: 'Каталог товарів', onClick: () => setView('list') };
+    if (view === 'edit_product') return [toList, { label: productName }];
+    if (view === 'edit_variant')
+      return [toList, { label: productName, onClick: () => setView('edit_product') }, { label: variantName }];
+    if (view === 'list') return [{ label: 'Каталог товарів' }];
+    const navLabel = NAV_ITEMS.find((item) => item.key === view)?.label || '';
+    return [toList, { label: navLabel }];
+  }, [view, productName, variantName]);
+
+  // Активний пункт навбару: редактори товару/варіації лишаються в розділі «Каталог».
+  const activeNav = view === 'edit_product' || view === 'edit_variant' ? 'list' : view;
+
   if (!isReady) {
     return (
       <Box padding={4} height="100vh" display="flex" alignItems="center" justifyContent="center" backgroundColor={UI.appBg}>
@@ -66,18 +107,16 @@ export default function AdminPanel(): JSX.Element {
   }
 
   return (
-    <Box height="100vh" overflowY="auto" backgroundColor={UI.appBg}>
-      <Box maxWidth="960px" margin="0 auto" padding={4}>
-        {view === 'list' && (
+    <Box height="100vh" display="flex" backgroundColor={UI.appBg}>
+      <Sidebar active={activeNav} onNavigate={(key) => setView(key as View)} />
+      <Box flex="1" overflowY="auto">
+        <Box maxWidth="960px" margin="0 auto" padding={4}>
+          <Breadcrumbs items={breadcrumbs} />
+          {view === 'list' && (
           <ProductList
             productsRecords={productsRecords}
             variantsRecords={variantsRecords}
             popularProductsRecords={popularProductsRecords}
-            onNavigateToRequests={() => setView('requests')}
-            onNavigateToJsonUpload={() => setView('json_upload')}
-            onNavigateToBulkImages={() => setView('bulk_images')}
-            onNavigateToFilters={() => setView('filters_config')}
-            onNavigateToBanners={() => setView('banners')}
             onCreateProduct={() => {
               setSelectedProductId(null);
               setView('edit_product');
@@ -147,6 +186,9 @@ export default function AdminPanel(): JSX.Element {
           <FiltersConfig
             specsRecords={specsRecords}
             specsTable={specsTable}
+            optionsRecords={optionsRecords}
+            optionFiltersTable={optionFiltersTable}
+            optionFiltersRecords={optionFiltersRecords}
             onBack={() => setView('list')}
           />
         )}
@@ -158,6 +200,16 @@ export default function AdminPanel(): JSX.Element {
             onGoBack={() => setView('list')}
           />
         )}
+
+        {view === 'comments' && (
+          <CommentsManager
+            commentsTable={commentsTable}
+            commentsRecords={commentsRecords}
+            productsRecords={productsRecords}
+            onGoBack={() => setView('list')}
+          />
+        )}
+        </Box>
       </Box>
     </Box>
   );

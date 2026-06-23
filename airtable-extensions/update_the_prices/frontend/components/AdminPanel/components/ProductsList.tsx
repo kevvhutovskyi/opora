@@ -9,11 +9,6 @@ interface ProductListProps {
   productsRecords: Record[] | null;
   variantsRecords: Record[] | null;
   popularProductsRecords: Record[] | null;
-  onNavigateToRequests: () => void;
-  onNavigateToJsonUpload: () => void;
-  onNavigateToBulkImages: () => void;
-  onNavigateToFilters: () => void;
-  onNavigateToBanners: () => void;
   onCreateProduct: () => void;
   onEditProduct: (productId: string) => void;
 }
@@ -22,11 +17,6 @@ export default function ProductList({
   productsRecords,
   variantsRecords,
   popularProductsRecords,
-  onNavigateToRequests,
-  onNavigateToJsonUpload,
-  onNavigateToBulkImages,
-  onNavigateToFilters,
-  onNavigateToBanners,
   onCreateProduct,
   onEditProduct,
 }: ProductListProps): JSX.Element {
@@ -79,14 +69,7 @@ export default function ProductList({
             <Heading size="large" margin={0}>Каталог товарів</Heading>
             <Text textColor="light" size="small">{productsRecords.length} позицій у базі</Text>
           </Box>
-          <Box display="flex" style={{ gap: 8 }}>
-            <Button icon="aiAssistant" onClick={onNavigateToRequests}>Заявки</Button>
-            <Button icon="upload" onClick={onNavigateToJsonUpload}>JSON</Button>
-            <Button icon="attachment" onClick={onNavigateToBulkImages}>Фото</Button>
-            <Button icon="filter" onClick={onNavigateToFilters}>Фільтри</Button>
-            <Button icon="gallery" onClick={onNavigateToBanners}>Банери</Button>
-            <Button variant="primary" icon="plus" onClick={onCreateProduct}>Додати товар</Button>
-          </Box>
+          <Button variant="primary" icon="plus" onClick={onCreateProduct}>Додати товар</Button>
         </Box>
       </Card>
 

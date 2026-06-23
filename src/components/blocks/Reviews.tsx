@@ -48,7 +48,7 @@ function ReviewCard({ comment }: { comment: Comment }) {
   return (
     <>
       {/* Картка */}
-      <div className="relative overflow-hidden rounded-2xl bg-white/60 border border-white/80 backdrop-blur-sm p-6 flex flex-col gap-4">
+      <div className="relative overflow-hidden rounded-2xl bg-white/60 border border-white/80 backdrop-blur-sm p-3 flex flex-col gap-4">
         <Header />
         <p className="text-opora-brown/75 text-sm leading-relaxed relative z-10">
           {preview}
@@ -139,24 +139,25 @@ export default function Reviews({ variation }: ReviewsProps) {
   };
 
   if (isLoading) {
-    return <div className="py-12 px-4 md:px-8 bg-opora-menu animate-pulse h-75 w-full" />;
+    return <div className="py-12 md:py-16 px-4 md:px-8 bg-opora-menu animate-pulse h-75 w-full" />;
   }
 
   // Якщо відгуків немає, взагалі не рендеримо секцію
   if (comments.length === 0) return null;
 
   return (
-    <section className="pb-0 pt-8 md:py-16 bg-opora-menu overflow-hidden">
+    <section className="pt-12 pb-6 md:pt-16 bg-opora-menu overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 md:px-8">
       {/* Шапка */}
-      <div className="flex justify-between items-center px-4 md:px-8 mb-10">
+      <div className="flex justify-between items-center mb-10">
         <h2 className="text-2xl md:text-3xl font-medium text-opora-brown">Відгуки</h2>
         {comments.length > 1 && (
           <div className="flex space-x-2">
             <button onClick={() => scroll("left")} aria-label="Попередні відгуки" className="p-2 hover:opacity-70 transition-opacity text-opora-brown">
-              <SliderArrowLeftIcon className="w-5 h-5" />
+              <SliderArrowLeftIcon className="w-6 h-6" />
             </button>
             <button onClick={() => scroll("right")} aria-label="Наступні відгуки" className="p-2 hover:opacity-70 transition-opacity text-opora-brown">
-              <SliderArrowRightIcon className="w-5 h-5" />
+              <SliderArrowRightIcon className="w-6 h-6" />
             </button>
           </div>
         )}
@@ -170,7 +171,7 @@ export default function Reviews({ variation }: ReviewsProps) {
           className="flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none pb-4"
         >
           {comments.map((comment) => (
-            <div key={comment.id} className="w-full shrink-0 snap-center px-4">
+            <div key={comment.id} className="w-full shrink-0 snap-center">
               <ReviewCard comment={comment} />
             </div>
           ))}
@@ -192,13 +193,14 @@ export default function Reviews({ variation }: ReviewsProps) {
       {/* ДЕСКТОП: горизонтальний скрол з картками */}
       <div
         ref={scrollContainerRef}
-        className="hidden md:flex gap-8 overflow-x-auto snap-x snap-mandatory hide-scrollbar px-8 pb-4"
+        className="hidden md:flex gap-8 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-4"
       >
         {comments.map((comment) => (
           <div key={comment.id} className="shrink-0 w-[320px] snap-start">
             <ReviewCard comment={comment} />
           </div>
         ))}
+      </div>
       </div>
     </section>
   );

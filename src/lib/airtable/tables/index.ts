@@ -9,3 +9,4 @@ export const tableOptions = base(TABLES.options);
 export const tableProductSpecs = base(TABLES.productSpecs);
 export const tableSpecs = base(TABLES.specs);
 export const tableRequests = base(TABLES.requests);
+export const tableOptionFilters = base(TABLES.optionFilters);

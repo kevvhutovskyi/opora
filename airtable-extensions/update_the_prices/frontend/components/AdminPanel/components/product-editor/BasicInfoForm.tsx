@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Button, FormField, Input, Text } from '@airtable/blocks/ui';
+import { Button, FormField, Input, Select, Text } from '@airtable/blocks/ui';
 import { Record } from '@airtable/blocks/models';
 import { useProductMutations } from '../../hooks/useProductMutations';
-import { FIELDS } from '../../constants';
+import { CATALOG_ITEMS, FIELDS } from '../../constants';
 import { Section } from '../ui';
 
 interface BasicInfoFormProps {
@@ -14,13 +14,14 @@ export function BasicInfoForm({ productId, productRecord }: BasicInfoFormProps):
   const { saveProduct } = useProductMutations();
 
   const [model, setModel] = useState(productRecord?.getCellValueAsString(FIELDS.product.model) || '');
+  const [catalog, setCatalog] = useState(productRecord?.getCellValueAsString(FIELDS.product.catalog) || '');
   const [description, setDescription] = useState(productRecord?.getCellValueAsString(FIELDS.product.description) || '');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await saveProduct(productId, { model, description });
+      await saveProduct(productId, { model, catalog, description });
       alert('Дані збережено');
     } finally {
       setIsSaving(false);
@@ -30,6 +31,13 @@ export function BasicInfoForm({ productId, productRecord }: BasicInfoFormProps):
   return (
     <Section title="Основна інформація" first>
       <FormField label="Модель"><Input value={model} onChange={(e) => setModel(e.target.value)} /></FormField>
+      <FormField label="Каталог (категорія)">
+        <Select
+          options={[{ value: '', label: 'Оберіть категорію…' }, ...CATALOG_ITEMS.map((c) => ({ value: c, label: c }))]}
+          value={catalog}
+          onChange={(val) => setCatalog(val as string)}
+        />
+      </FormField>
       <FormField label="Опис">
         <textarea
           value={description}

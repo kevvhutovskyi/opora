@@ -147,7 +147,9 @@ export const getProductById = cache(async (productId: string): Promise<ProductDe
   if (!productRecord) return null;
 
   const variantIds = (productRecord.get(FIELDS.product.variants) as string[]) || [];
-  const variantsRecords = await fetchRecordsByIds(tableVariants, variantIds);
+  // Зберігаємо порядок linked-поля (його задає адмінка) — fetchRecordsByIds його не гарантує.
+  const variantsById = indexById(await fetchRecordsByIds(tableVariants, variantIds));
+  const variantsRecords = variantIds.map((id) => variantsById.get(id)).filter(Boolean) as AirtableRecord<FieldSet>[];
 
   const optionIds = variantsRecords.flatMap((v) => (v.get(FIELDS.variant.options) as string[]) || []);
   const optionsById = indexById(await fetchRecordsByIds(tableOptions, optionIds));
@@ -196,7 +198,9 @@ async function getProductSpecifications(
   const productSpecIds = (productRecord.get(FIELDS.product.specs) as string[]) || [];
   if (productSpecIds.length === 0) return [];
 
-  const specsRecords = await fetchRecordsByIds(tableProductSpecs, productSpecIds);
+  // Зберігаємо порядок linked-поля (його задає адмінка) — fetchRecordsByIds його не гарантує.
+  const specsById = indexById(await fetchRecordsByIds(tableProductSpecs, productSpecIds));
+  const specsRecords = productSpecIds.map((id) => specsById.get(id)).filter(Boolean) as AirtableRecord<FieldSet>[];
 
   const charIds = specsRecords.flatMap((spec) => (spec.get(FIELDS.productSpec.spec) as string[]) || []);
   const charsById = indexById(await fetchRecordsByIds(tableSpecs, charIds));

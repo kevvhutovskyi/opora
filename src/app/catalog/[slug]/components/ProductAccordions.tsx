@@ -78,7 +78,8 @@ export default function ProductAccordions({
         </div>
       </div>
 
-      {/* 3. Збірка */}
+      {/* 3. Збірка — лише якщо є PDF-інструкція */}
+      {product.assemblyPdfUrl && (
       <div className="border-b-2 border-stone-200">
         <button
           onClick={() => onToggle('assembly')}
@@ -94,9 +95,8 @@ export default function ProductAccordions({
             </p>
             <button
               onClick={() => {
-                const pdfUrl = product.assemblyPdfUrl || "https://example.com/secured-cloudflare-url.pdf";
                 const filename = `Інструкція_збірки_${product.model?.replace(/\s+/g, '_') || 'товар'}`;
-                onDownloadPdf(pdfUrl, filename);
+                onDownloadPdf(product.assemblyPdfUrl!, filename);
               }}
               className="inline-flex items-center justify-center border-2 border-amber-800 bg-amber-800 text-white py-3 px-8 font-bold uppercase tracking-widest text-xs hover:bg-transparent hover:text-amber-800 transition-all duration-300 rounded-sm"
             >
@@ -105,6 +105,7 @@ export default function ProductAccordions({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

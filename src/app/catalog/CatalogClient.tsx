@@ -35,16 +35,15 @@ export default function CatalogClient({ initialProducts, filterOptions, categori
 
   const selectedColors = useMemo(() => {
     const colors: string[] = [];
-    for (const key of ["seatColor", "legColor", "tableColor"]) {
-      const val = searchParams.get(key);
-      if (val) colors.push(...val.split(","));
-    }
+    searchParams.forEach((val, key) => {
+      if (key.startsWith("optFilter_") && val) colors.push(...val.split(","));
+    });
     return colors;
   }, [searchParams]);
 
   const navigate = (queryString: string) => {
     startTransition(() => {
-      router.push(`${pathname}?${queryString}`);
+      router.push(`${pathname}?${queryString}`, { scroll: false });
     });
   };
 
@@ -103,8 +102,14 @@ export default function CatalogClient({ initialProducts, filterOptions, categori
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-12 lg:flex lg:gap-12 lg:items-start">
 
         {/* Desktop sidebar — hidden on mobile */}
-        <aside className="hidden lg:flex flex-col w-72 shrink-0">
-          <div className="sticky top-24 flex flex-col" style={{ height: 'calc(100vh - 7rem)' }}>
+        <aside
+          className="hidden lg:flex flex-col w-72 shrink-0 sticky transition-[top] duration-300 ease-in-out"
+          style={{
+            top: 'var(--header-offset, 2rem)',
+            height: 'calc(100vh - 7rem)',
+          }}
+        >
+          <div className="flex flex-col h-full">
 
             <div className="flex flex-1 min-h-0">
               <div className="flex-1 overflow-y-auto pl-4 space-y-8 pb-4">
@@ -153,11 +158,12 @@ export default function CatalogClient({ initialProducts, filterOptions, categori
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-16 gap-x-8">
-              {initialProducts.map((product) => (
+              {initialProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
                   product={product}
                   selectedColors={selectedColors}
+                  initialIndex={index}
                 />
               ))}
             </div>

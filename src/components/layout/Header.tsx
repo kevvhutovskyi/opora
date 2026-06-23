@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { MenuIcon, CartIcon, OporaLogo } from "../ui/Icons";
@@ -11,15 +12,22 @@ import { STORE } from "@/lib/site";
 import NovaPoshtaDelivery, { DeliverySelection } from "@/components/blocks/NovaPoshtaDelivery";
 
 export default function Header() {
+  const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Кошик гідрується з localStorage лише на клієнті — рендеримо лічильник після монтування,
+  // щоб серверний HTML (0 товарів) збігався з першим клієнтським рендером.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const [isVisible, setIsVisible] = useState(true);
   const [hasScrolled, setHasScrolled] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = useRef(0);
 
   // Checkout State
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'form' | 'success'>('cart');
   const [formData, setFormData] = useState({ name: '', phone: '+380' });
+  const [deliveryMethod, setDeliveryMethod] = useState<'novaposhta' | 'auto' | 'private'>('novaposhta');
   const [delivery, setDelivery] = useState<DeliverySelection | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
@@ -41,6 +49,7 @@ export default function Header() {
     setTimeout(() => {
       setCheckoutStep('cart');
       setFormData({ name: '', phone: '+380' });
+      setDeliveryMethod('novaposhta');
       setDelivery(null);
     }, 300); // Reset after drawer transition finishes
   };
@@ -93,19 +102,30 @@ export default function Header() {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
-      // Toggle visibility
-      setIsVisible(currentScrollY < lastScrollY || currentScrollY < 50);
-      
+
+      // На каталозі хедер з'являється лише біля самого верху — інакше при скролі вгору
+      // він перекриває sticky-сайдбар фільтрів. На решті сторінок — звична поведінка
+      // (показуємо при скролі вгору).
+      const isCatalog = pathname === "/catalog";
+      const visible = isCatalog
+        ? currentScrollY < 50
+        : currentScrollY < lastScrollY.current || currentScrollY < 50;
+      setIsVisible(visible);
+
+      // Публікуємо реальний відступ хедера, щоб sticky-сайдбар каталогу міг
+      // за ним слідкувати: хедер видно → клиренс 6rem, сховано → 2rem.
+      document.documentElement.style.setProperty("--header-offset", visible ? "6rem" : "2rem");
+
       // Toggle background style: true if scrolled down more than 20px
       setHasScrolled(currentScrollY > 20);
-      
-      setLastScrollY(currentScrollY);
+
+      lastScrollY.current = currentScrollY;
     };
 
+    handleScroll(); // ініціалізуємо змінну одразу
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+  }, [pathname]);
 
   return (
     <>
@@ -113,8 +133,8 @@ export default function Header() {
         className={`fixed top-0 left-0 w-full z-30 px-4 md:px-8 py-6 flex justify-between items-center text-opora-brown 
           transition-all duration-300 ease-in-out
           ${isVisible ? "translate-y-0" : "-translate-y-full"}
-          ${hasScrolled 
-            ? "bg-opora-softBeige shadow-md" 
+          ${hasScrolled
+            ? "bg-opora-softBeige shadow-md"
             : "bg-transparent backdrop-blur-md"
           }
         `}
@@ -125,7 +145,7 @@ export default function Header() {
           className="hover:opacity-70 transition-opacity p-2 -ml-2 relative"
         >
           <CartIcon className="w-6 h-6" />
-          {getTotalItems() > 0 && (
+          {mounted && getTotalItems() > 0 && (
             <span className="absolute top-1 right-0 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
               {getTotalItems()}
             </span>
@@ -135,9 +155,9 @@ export default function Header() {
         {/* Логотип */}
         <Link 
           href="/" 
-          className="text-2xl md:text-3xl tracking-[0.2em] uppercase font-medium"
+          className="text-2xl md:text-3xl tracking-[0.2em] uppercase font-medium cursor-pointer"
         >
-          <OporaLogo />
+          <OporaLogo className="pointer-events-none" />
         </Link>
 
         {/* Кнопка меню (Бургер) */}
@@ -219,32 +239,36 @@ export default function Header() {
                   </div>
                 ) : (
                   cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-4 items-center">
-                      <div className="relative w-20 h-20 bg-opora-softBeige rounded-sm shrink-0 overflow-hidden">
-                        <Image src={item.image} alt={item.title} fill sizes="80px" className="object-cover object-center" />
+                    <div key={item.id} className="flex gap-5 items-start border-b border-opora-brown/10 pb-6 last:border-0">
+                      <div className="relative w-32 h-36 bg-opora-softBeige rounded-sm shrink-0 overflow-hidden">
+                        <Image src={item.image} alt={item.title} fill sizes="128px" className="object-cover object-center" />
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium leading-tight mb-1">{item.title}</h4>
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <h4 className="font-medium text-base leading-snug">{item.title}</h4>
+                          <button onClick={() => removeItem(item.id)} className="shrink-0 p-1 hover:opacity-70 transition-opacity -mt-0.5">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 mb-3">
                           {item.options.map((opt, i) => (
                             <span
                               key={i}
-                              className="w-3 h-3 rounded-full border border-black/10 inline-block shrink-0"
+                              className="w-4 h-4 rounded-full border border-black/10 inline-block shrink-0"
                               style={{ backgroundColor: opt.value }}
                               title={opt.name}
                             />
                           ))}
-                          <p className="text-xs font-light opacity-60">Art: {item.sku}</p>
+                          <p className="text-xs font-light opacity-50">Art: {item.sku}</p>
                         </div>
-                        <div className="flex items-center gap-4 mt-2">
-                          <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="hover:opacity-70 text-lg leading-none">-</button>
-                          <span className="text-sm font-light">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="hover:opacity-70 text-lg leading-none">+</button>
+                        <div className="flex flex-col gap-1 mt-auto">
+                          <div className="flex items-center gap-5 py-3 w-fit">
+                            <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="hover:opacity-70 text-xl leading-none">−</button>
+                            <span className="text-base font-light w-4 text-center">{item.quantity}</span>
+                            <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="hover:opacity-70 text-xl leading-none">+</button>
+                          </div>
+                          <p className="text-base font-medium">{(item.price * item.quantity).toLocaleString('uk-UA')} ₴</p>
                         </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <button onClick={() => removeItem(item.id)} className="p-1 hover:opacity-70 transition-opacity"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                        <p className="text-sm font-medium whitespace-nowrap">{(item.price * item.quantity).toLocaleString('uk-UA')} ₴</p>
                       </div>
                     </div>
                   ))
@@ -268,9 +292,10 @@ export default function Header() {
             </>
           )}
 
-          {/* STEP 2: CHECKOUT FORM (Matches image_a2eb05.png) */}
+          {/* STEP 2: CHECKOUT FORM */}
           {checkoutStep === 'form' && (
-            <div className="flex flex-col h-full items-center justify-center text-center">
+            <div className="h-full overflow-y-auto">
+            <div className="flex flex-col min-h-full items-center justify-center text-center py-4 md:py-0">
               <h3 className="font-bold text-2xl mb-2">Визначились з замовленням?</h3>
               <p className="text-lg font-light mb-8 max-w-62.5">
                 Заповніть форму і ми вам передзвонимо!
@@ -301,9 +326,27 @@ export default function Header() {
                   <span className="absolute top-3 right-3 text-red-500 text-lg leading-none pointer-events-none">*</span>
                 </div>
 
-                <NovaPoshtaDelivery value={delivery} onChange={setDelivery} />
+                <div className="space-y-2 text-left">
+                  <label className="text-sm font-medium">Спосіб доставки</label>
+                  <select
+                    value={deliveryMethod}
+                    onChange={(e) => {
+                      setDeliveryMethod(e.target.value as typeof deliveryMethod);
+                      setDelivery(null);
+                    }}
+                    className="w-full border border-opora-brown p-4 text-lg bg-transparent focus:outline-none focus:ring-1 focus:ring-opora-brown"
+                  >
+                    <option value="novaposhta">Нова Пошта</option>
+                    <option value="auto">Delivery Auto</option>
+                    <option value="private">Приватні перевезники</option>
+                  </select>
+                </div>
 
-                <div className="pt-4">
+                {deliveryMethod === 'novaposhta' ? (
+                  <NovaPoshtaDelivery value={delivery} onChange={setDelivery} />
+                ) : null}
+
+                <div>
                   <button 
                     type="submit" 
                     disabled={isSubmitting}
@@ -320,6 +363,7 @@ export default function Header() {
                   </button>
                 </div>
               </form>
+            </div>
             </div>
           )}
 
