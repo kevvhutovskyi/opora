@@ -19,6 +19,7 @@ export const FIELDS = {
     model: 'Модель',
     catalog: 'Каталог',
     description: 'Опис',
+    visible: 'Показувати',
     assemblyVideo: 'Відео Збірки',
     // Linked-поля: порядок у цих масивах визначає порядок на storefront (картка/деталі).
     variants: 'Варіації Товарів',
@@ -58,6 +59,9 @@ export const FIELDS = {
     name: "Ім'я",
     phone: 'Номер телефону',
     order: 'Замовлення',
+    delivery: 'Доставка',
+    deliveryCity: 'Місто',
+    deliveryWarehouse: 'Відділення',
     warmed: 'Прогрет',
   },
   banner: {

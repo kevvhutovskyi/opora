@@ -6,12 +6,21 @@ import { Badge } from '../ui';
 
 interface RequestRowProps {
   request: Record;
+  productNameById: Map<string, string>;
   onToggleWarmed: (recordId: string, currentValue: boolean) => void;
 }
 
-export function RequestRow({ request, onToggleWarmed }: RequestRowProps): JSX.Element {
+export function RequestRow({ request, productNameById, onToggleWarmed }: RequestRowProps): JSX.Element {
   const isWarmed = Boolean(request.getCellValue(FIELDS.request.warmed));
-  const linkedOrder = request.getCellValueAsString(FIELDS.request.order);
+  // «Замовлення» лінкує на «Товари», чиє первинне поле порожнє → резолвимо id у «Модель».
+  const linkedOrder = ((request.getCellValue(FIELDS.request.order) as Array<{ id: string }> | null) || [])
+    .map((l) => productNameById.get(l.id) || 'Без назви')
+    .join(', ');
+
+  const delivery = request.getCellValueAsString(FIELDS.request.delivery);
+  const deliveryCity = request.getCellValueAsString(FIELDS.request.deliveryCity);
+  const deliveryWarehouse = request.getCellValueAsString(FIELDS.request.deliveryWarehouse);
+  const deliveryText = [delivery, deliveryCity, deliveryWarehouse].filter(Boolean).join(', ');
 
   return (
     <Box
@@ -35,6 +44,7 @@ export function RequestRow({ request, onToggleWarmed }: RequestRowProps): JSX.El
           📞 {request.getCellValueAsString(FIELDS.request.phone) || '—'}
         </Text>
         {linkedOrder && <Text size="small" textColor="blue">🛒 Замовлення: {linkedOrder}</Text>}
+        {deliveryText && <Text size="small" textColor="light">🚚 {deliveryText}</Text>}
       </Box>
 
       <Box padding={2} style={{ background: UI.cardBg, borderRadius: 8 }}>

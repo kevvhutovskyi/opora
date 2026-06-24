@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box, Button, Heading, Text } from '@airtable/blocks/ui';
 import { Record, Table } from '@airtable/blocks/models';
 import { FIELDS, UI } from '../constants';
@@ -8,6 +8,8 @@ import { RequestRow } from './requests/RequestRow';
 interface RequestsCRMProps {
   requestsTable: Table | null;
   requestsRecords: Record[] | null;
+  productsRecords: Record[] | null;
+  variantsRecords: Record[] | null;
   onGoBack: () => void;
 }
 
@@ -16,9 +18,26 @@ const ITEMS_PER_PAGE = 10;
 export default function RequestsCRM({
   requestsTable,
   requestsRecords,
+  productsRecords,
+  variantsRecords,
   onGoBack,
 }: RequestsCRMProps): JSX.Element {
   const [currentPage, setCurrentPage] = useState(1);
+
+  // «Замовлення» лінкує на варіації (кошик зберігає variant.id), а їхнє первинне поле порожнє → "Unnamed record".
+  // Резолвимо variant.id → «Модель» товару, до якого варіація прив'язана.
+  const productNameById = useMemo(() => {
+    const modelByProductId = new Map<string, string>();
+    (productsRecords || []).forEach((p) => modelByProductId.set(p.id, p.getCellValueAsString(FIELDS.product.model)));
+
+    const map = new Map<string, string>();
+    (variantsRecords || []).forEach((v) => {
+      const productId = ((v.getCellValue(FIELDS.variant.product) as Array<{ id: string }> | null) || [])[0]?.id;
+      const model = (productId && modelByProductId.get(productId)) || v.getCellValueAsString(FIELDS.variant.name);
+      if (model) map.set(v.id, model);
+    });
+    return map;
+  }, [productsRecords, variantsRecords]);
 
   const totalRecords = requestsRecords?.length || 0;
   const totalPages = Math.ceil(totalRecords / ITEMS_PER_PAGE);
@@ -57,7 +76,7 @@ export default function RequestsCRM({
           <Text textColor="light" textAlign="center" marginTop={4}>Заявок поки немає.</Text>
         ) : (
           currentRequests.map((request) => (
-            <RequestRow key={request.id} request={request} onToggleWarmed={handleToggleWarmed} />
+            <RequestRow key={request.id} request={request} productNameById={productNameById} onToggleWarmed={handleToggleWarmed} />
           ))
         )}
       </Box>

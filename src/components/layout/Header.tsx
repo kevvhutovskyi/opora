@@ -67,6 +67,7 @@ export default function Header() {
       phoneNumber: formData.phone,
       // email: formData.email, // Розкоментуйте, якщо додасте поле email у форму
       orderNumber: newOrderNumber,
+      deliveryMethod,
       deliveryCity: delivery?.cityName,
       deliveryWarehouse: delivery?.warehouseName,
       orders: [

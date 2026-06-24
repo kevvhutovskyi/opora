@@ -6,6 +6,7 @@ interface ProductFields {
   model: string;
   catalog: string;
   description: string;
+  visible: boolean;
 }
 
 export function useProductMutations() {
@@ -26,6 +27,7 @@ export function useProductMutations() {
       [FIELDS.product.model]: fields.model,
       [FIELDS.product.catalog]: fields.catalog,
       [FIELDS.product.description]: fields.description,
+      [FIELDS.product.visible]: fields.visible,
     };
 
     if (productId) {

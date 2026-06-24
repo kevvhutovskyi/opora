@@ -26,6 +26,7 @@ export function ProductRow({ product, variantCount, isPopular, onEdit }: Product
             {product.getCellValueAsString(FIELDS.product.model) || 'Без моделі'}
           </Heading>
           {isPopular && <Badge tone="warn">★ Популярне</Badge>}
+          {!product.getCellValue(FIELDS.product.visible) && <Badge tone="neutral">Прихований</Badge>}
         </Box>
         <Box display="flex" alignItems="center" style={{ gap: 12 }}>
           <Box display="flex" alignItems="center">

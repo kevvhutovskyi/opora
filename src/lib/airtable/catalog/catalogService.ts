@@ -90,14 +90,13 @@ async function fetchFilteredCatalog(
     specFilters = {},
   } = params;
 
-  // 1. Базова вибірка товарів за категорією
-  const productsData = await tableProducts
-    .select(
-      type && type !== "All"
-        ? { filterByFormula: `{${FIELDS.product.catalog}}='${CATEGORY_TABLES[type]}'` }
-        : {}
-    )
-    .all();
+  // 1. Базова вибірка товарів за категорією (лише позначені «Показувати»)
+  const visible = `{${FIELDS.product.visible}}=1`;
+  const filterByFormula =
+    type && type !== "All"
+      ? `AND({${FIELDS.product.catalog}}='${CATEGORY_TABLES[type]}', ${visible})`
+      : visible;
+  const productsData = await tableProducts.select({ filterByFormula }).all();
 
   if (productsData.length === 0) return [];
 
@@ -203,7 +202,7 @@ async function fetchFilterOptions() {
   // Кожен рядок = увімкнена група; «Категорії» — необов'язкове обмеження групи.
   const [configRows, productsData] = await Promise.all([
     tableOptionFilters.select().all(),
-    tableProducts.select().all(),
+    tableProducts.select({ filterByFormula: `{${FIELDS.product.visible}}=1` }).all(),
   ]);
 
   // groupName → адмін-обмеження категорій (порожньо = всі)

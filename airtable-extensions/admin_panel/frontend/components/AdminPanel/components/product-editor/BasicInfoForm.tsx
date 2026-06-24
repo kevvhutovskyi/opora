@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, FormField, Input, Select, Text } from '@airtable/blocks/ui';
+import { Button, FormField, Input, Select, Switch, Text } from '@airtable/blocks/ui';
 import { Record } from '@airtable/blocks/models';
 import { useProductMutations } from '../../hooks/useProductMutations';
 import { CATALOG_ITEMS, FIELDS } from '../../constants';
@@ -16,12 +16,14 @@ export function BasicInfoForm({ productId, productRecord }: BasicInfoFormProps):
   const [model, setModel] = useState(productRecord?.getCellValueAsString(FIELDS.product.model) || '');
   const [catalog, setCatalog] = useState(productRecord?.getCellValueAsString(FIELDS.product.catalog) || '');
   const [description, setDescription] = useState(productRecord?.getCellValueAsString(FIELDS.product.description) || '');
+  // Нові товари показуємо за замовчуванням; існуючі — за поточним значенням поля.
+  const [visible, setVisible] = useState(productRecord ? Boolean(productRecord.getCellValue(FIELDS.product.visible)) : true);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await saveProduct(productId, { model, catalog, description });
+      await saveProduct(productId, { model, catalog, description, visible });
       alert('Дані збережено');
     } finally {
       setIsSaving(false);
@@ -60,6 +62,9 @@ export function BasicInfoForm({ productId, productRecord }: BasicInfoFormProps):
         <Text textColor="light" size="small" marginTop={1}>
           Підтримується Markdown — текст зберігається як є й рендериться на сайті.
         </Text>
+      </FormField>
+      <FormField label="Показувати на сайті">
+        <Switch value={visible} onChange={setVisible} label={visible ? 'Товар видно на сайті' : 'Товар прихований'} />
       </FormField>
       <Button variant="primary" icon="check" onClick={handleSave} disabled={isSaving}>
         {isSaving ? 'Збереження…' : 'Зберегти товар'}

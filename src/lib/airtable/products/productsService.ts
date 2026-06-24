@@ -61,7 +61,8 @@ export async function getTopProducts(): Promise<ProductDetails[]> {
  * Повертає легку форму ProductDetails (id, назва, ціна, варіації з кольорами).
  */
 export async function getMultipleProductsWithVariations(productIds: string[]): Promise<ProductDetails[]> {
-  const productsData = await fetchRecordsByIds(tableProducts, productIds);
+  const productsData = (await fetchRecordsByIds(tableProducts, productIds))
+    .filter((p) => p.get(FIELDS.product.visible));
   if (productsData.length === 0) return [];
 
   const variationIds = productsData.flatMap((p) => (p.get(FIELDS.product.variants) as string[]) || []);
@@ -144,7 +145,7 @@ export interface ProductDetail {
  */
 export const getProductById = cache(async (productId: string): Promise<ProductDetail | null> => {
   const productRecord = await tableProducts.find(productId).catch(() => null);
-  if (!productRecord) return null;
+  if (!productRecord || !productRecord.get(FIELDS.product.visible)) return null;
 
   const variantIds = (productRecord.get(FIELDS.product.variants) as string[]) || [];
   // Зберігаємо порядок linked-поля (його задає адмінка) — fetchRecordsByIds його не гарантує.

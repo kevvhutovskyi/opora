@@ -1,11 +1,19 @@
 import { ClientRequest, tableRequests, FIELDS } from "@/lib";
 import { NextRequest, NextResponse } from "next/server";
 
+// Коди способів доставки → людські назви (для Airtable та Telegram)
+const DELIVERY_LABELS: Record<string, string> = {
+  novaposhta: "Нова Пошта",
+  auto: "Delivery Auto",
+  private: "Приватні перевізники",
+};
+
 export async function POST(request: NextRequest) {
   try {
     // Парсимо JSON з тіла запиту
     const body = await request.json() as ClientRequest;
-    const { name, phoneNumber, orders, deliveryCity, deliveryWarehouse } = body;
+    const { name, phoneNumber, orders, deliveryMethod, deliveryCity, deliveryWarehouse } = body;
+    const deliveryLabel = deliveryMethod ? DELIVERY_LABELS[deliveryMethod] : "";
 
     // Базова валідація
     if (!name || !phoneNumber) {
@@ -32,6 +40,7 @@ export async function POST(request: NextRequest) {
           [FIELDS.request.name]: name,
           [FIELDS.request.phoneNumber]: phoneNumber || '',
           [FIELDS.request.orderNumber]: orderNumber,
+          ...(deliveryLabel && { [FIELDS.request.delivery]: deliveryLabel }),
           ...(deliveryCity && { [FIELDS.request.deliveryCity]: deliveryCity }),
           ...(deliveryWarehouse && { [FIELDS.request.deliveryWarehouse]: deliveryWarehouse }),
           ...(linkedProductIds.length > 0 && { [FIELDS.request.orders]: linkedProductIds })
@@ -72,8 +81,8 @@ export async function POST(request: NextRequest) {
         });
 
         const deliveryText =
-          deliveryCity || deliveryWarehouse
-            ? `\n\n🚚 <b>Доставка (Нова Пошта):</b>\n` +
+          deliveryLabel || deliveryCity || deliveryWarehouse
+            ? `\n\n🚚 <b>Доставка${deliveryLabel ? ` (${deliveryLabel})` : ""}:</b>\n` +
               (deliveryCity ? `   🏙 ${deliveryCity}\n` : "") +
               (deliveryWarehouse ? `   🏤 ${deliveryWarehouse}\n` : "")
             : "";

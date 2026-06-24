@@ -36,6 +36,7 @@ export const FIELDS = {
     catalog: "Каталог",
     description: "Опис",
     minPrice: "Мінімальна Ціна",
+    visible: "Показувати",
     variants: "Варіації Товарів",
     specs: "Товари/Характеристики",
     assemblyVideo: "Відео Збірки",
@@ -94,6 +95,8 @@ export const FIELDS = {
     phoneNumber: "Номер телефону",
     orderNumber: "Номер замовлення",
     orders: "Замовлення",
+    // Спосіб доставки (Нова Пошта / Delivery Auto / Приватні перевізники)
+    delivery: "Доставка",
     // Доставка «Нова Пошта» — створіть ці колонки (тип "Single line text") у таблиці "Запити"
     deliveryCity: "Місто",
     deliveryWarehouse: "Відділення",

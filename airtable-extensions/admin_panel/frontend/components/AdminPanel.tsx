@@ -197,6 +197,8 @@ export default function AdminPanel(): JSX.Element {
           <RequestsCRM
             requestsTable={requestsTable}
             requestsRecords={requestsRecords}
+            productsRecords={productsRecords}
+            variantsRecords={variantsRecords}
             onGoBack={() => setView('list')}
           />
         )}

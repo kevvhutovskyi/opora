@@ -10,7 +10,7 @@ const CATEGORIES = [
     title: "Стільці",
     mockImage: "https://picsum.photos/id/230/800/600",
     link: "/catalog?type=Chair",
-    colSpan: "md:col-span-2",
+    colSpan: "md:col-span-1",
   },
   {
     id: 2,
@@ -19,13 +19,13 @@ const CATEGORIES = [
     link: "/catalog?type=Table",
     colSpan: "md:col-span-1",
   },
-  {
-    id: 3,
-    title: "Табуретки",
-    mockImage: "https://picsum.photos/id/232/800/600",
-    link: "/catalog?type=Nightstand",
-    colSpan: "md:col-span-1",
-  },
+  // {
+  //   id: 3,
+  //   title: "Табуретки",
+  //   mockImage: "https://picsum.photos/id/232/800/600",
+  //   link: "/catalog?type=Nightstand",
+  //   colSpan: "md:col-span-1",
+  // },
 ];
 
 type CategoriesProps = {

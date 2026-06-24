@@ -1,4 +1,3 @@
-// src/components/layout/Drawer.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -7,7 +6,7 @@ import { CloseIcon, CartIcon, OporaLogo } from "../ui/Icons";
 interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onCartClick?: () => void; // Додаємо обробник для кошика
+  onCartClick?: () => void;
   children: React.ReactNode;
   position?: "left" | "right";
 }
