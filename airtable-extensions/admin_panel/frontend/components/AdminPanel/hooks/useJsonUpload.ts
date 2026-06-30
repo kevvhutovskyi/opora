@@ -2,27 +2,32 @@ import React, { useState } from 'react';
 import { useBase, useRecords } from '@airtable/blocks/ui';
 import { FIELDS, TABLES } from '../constants';
 
+export interface JsonOption {
+  group: string; // напр. "Колір / Декор"
+  text: string;  // назва значення, напр. "Вишня"
+  value: string; // hex або довільне значення, напр. "#000000"
+}
+
 export interface JsonVariant {
-  sku: string;
-  upholstery_color: string;
-  upholstery_color_hex: string;
-  leg_color: string;
-  leg_color_hex: string;
-}
-
-export interface JsonModel {
-  name: string;
+  art: string;   // артикул (SKU)
   price: number;
-  characteristics: Record<string, string | number | string[]>;
-  variants: JsonVariant[];
-  description_markdown: string;
+  options: JsonOption[];
 }
 
-export interface JsonData {
-  models: JsonModel[];
-  // Maps a Ukrainian color name -> hex value, e.g. { "Чорний": "#000000" }
-  colors?: Record<string, string>;
+export interface JsonCharacteristic {
+  name: string;
+  value: string;
 }
+
+export interface JsonProduct {
+  name: string;
+  description?: string;
+  characteristics?: JsonCharacteristic[];
+  variants: JsonVariant[];
+}
+
+// Дані на верхньому рівні — масив товарів.
+export type JsonData = JsonProduct[];
 
 type CreatedRecords = {
   products: string[];
@@ -33,12 +38,6 @@ type CreatedRecords = {
 };
 
 const EMPTY_CREATED: CreatedRecords = { products: [], variants: [], options: [], specs: [], prodSpecs: [] };
-
-// "матеріал_оббивки" -> "Матеріал оббивки" (Ukrainian, only first letter capitalized)
-function toCharName(key: string): string {
-  const spaced = key.replace(/_/g, ' ').trim().toLowerCase();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
 
 /** Уся логіка завантаження/скасування/очищення каталогу з JSON. UI лишається тонким. */
 export function useJsonUpload() {
@@ -85,8 +84,8 @@ export function useJsonUpload() {
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        if (!json.models || !Array.isArray(json.models)) {
-          throw new Error('"models" array is required at the top level');
+        if (!Array.isArray(json)) {
+          throw new Error('Очікується масив товарів на верхньому рівні: [ { "name", "variants": [...] } ]');
         }
         setParsedData(json);
       } catch (err) {
@@ -106,13 +105,6 @@ export function useJsonUpload() {
     setLog([]);
 
     const created: CreatedRecords = { products: [], variants: [], options: [], specs: [], prodSpecs: [] };
-
-    // Reverse color lookup: hex (uppercase) -> Ukrainian name, e.g. "#000000" -> "Чорний"
-    const hexToColorName = new Map<string, string>();
-    for (const [name, hex] of Object.entries(parsedData.colors || {})) {
-      hexToColorName.set(String(hex).toUpperCase(), name);
-    }
-    const colorName = (hex: string) => hexToColorName.get(String(hex).toUpperCase()) || hex;
 
     // Каталоги унікальних записів: назва -> id (щоб не дублювати характеристики/опції).
     const specByName = new Map<string, string>();
@@ -140,50 +132,51 @@ export function useJsonUpload() {
     };
 
     try {
-      for (const model of parsedData.models) {
-        addLog(`[${model.name}] Створення товару...`);
+      for (const product of parsedData) {
+        addLog(`[${product.name}] Створення товару...`);
 
         const productId = await productsTable.createRecordAsync({
-          [FIELDS.product.model]: model.name,
-          [FIELDS.product.description]: model.description_markdown || '',
+          [FIELDS.product.name]: product.name,
+          [FIELDS.product.model]: product.name,
+          [FIELDS.product.visible]: true,
+          [FIELDS.product.description]: product.description || '',
         });
         created.products.push(productId);
-        addLog(`[${model.name}] Товар створено`);
+        addLog(`[${product.name}] Товар створено`);
 
-        const charEntries = Object.entries(model.characteristics || {});
-        for (const [key, value] of charEntries) {
-          const valueStr = Array.isArray(value) ? value.join(', ') : String(value);
-          const specId = await getOrCreateSpec(toCharName(key));
+        const characteristics = product.characteristics || [];
+        for (const char of characteristics) {
+          const specId = await getOrCreateSpec(char.name);
           const prodSpecId = await prodSpecsTable.createRecordAsync({
             [FIELDS.productSpec.product]: [{ id: productId }],
             [FIELDS.productSpec.spec]: [{ id: specId }],
-            [FIELDS.productSpec.value]: valueStr,
+            [FIELDS.productSpec.value]: char.value,
           });
           created.prodSpecs.push(prodSpecId);
         }
-        if (charEntries.length > 0) {
-          addLog(`[${model.name}] Характеристики додано (${charEntries.length})`);
+        if (characteristics.length > 0) {
+          addLog(`[${product.name}] Характеристики додано (${characteristics.length})`);
         }
 
         let variantCount = 0;
-        for (const variant of model.variants || []) {
-          const upholsteryName = `Колір оббивки: ${colorName(variant.upholstery_color_hex)}`;
-          const legName = `Колір ніжок: ${colorName(variant.leg_color_hex)}`;
-
-          const upholsteryOptId = await getOrCreateOption(upholsteryName, variant.upholstery_color_hex);
-          const legOptId = await getOrCreateOption(legName, variant.leg_color_hex);
+        for (const variant of product.variants || []) {
+          // Опції зберігають порядок із JSON; назва = "Група: Текст", значення = hex/текст.
+          const optionIds: string[] = [];
+          for (const opt of variant.options || []) {
+            optionIds.push(await getOrCreateOption(`${opt.group}: ${opt.text}`, opt.value));
+          }
 
           const variantId = await variantsTable.createRecordAsync({
-            [FIELDS.variant.sku]: variant.sku,
-            [FIELDS.variant.price]: model.price,
+            [FIELDS.variant.sku]: variant.art,
+            [FIELDS.variant.price]: variant.price,
             [FIELDS.variant.inStock]: true,
             [FIELDS.variant.product]: [{ id: productId }],
-            [FIELDS.variant.options]: [{ id: upholsteryOptId }, { id: legOptId }],
+            [FIELDS.variant.options]: optionIds.map((id) => ({ id })),
           });
           created.variants.push(variantId);
           variantCount++;
         }
-        addLog(`[${model.name}] Варіації додано (${variantCount})`);
+        addLog(`[${product.name}] Варіації додано (${variantCount})`);
       }
 
       setCreatedRecords(created);

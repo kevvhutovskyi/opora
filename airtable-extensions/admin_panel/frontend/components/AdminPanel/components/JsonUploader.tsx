@@ -8,7 +8,7 @@ import { UploadLog } from './json-uploader/UploadLog';
 import { DangerZone } from './json-uploader/DangerZone';
 
 const FORMAT_HINT =
-  '{ "models": [{ "name", "price", "characteristics", "variants", "description_markdown" }], "colors": { "Чорний": "#000000" } }';
+  '[{ "name", "description", "characteristics": [{ "name", "value" }], "variants": [{ "art", "price", "options": [{ "group", "text", "value" }] }] }]';
 
 export default function JsonUploader({ onGoBack }: { onGoBack: () => void }): JSX.Element {
   const {

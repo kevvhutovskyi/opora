@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Box, Button, Heading, Text } from '@airtable/blocks/ui';
 import { FieldType, Record, Table } from '@airtable/blocks/models';
 import { mediaApi } from '../services/mediaApi';
-import { BANNER_TYPES, CATEGORY_ITEMS, FIELDS, TABLES, UI } from '../constants';
+import { BANNER_TYPES, FIELDS, TABLES, UI } from '../constants';
 import { Card, Section } from './ui';
 
 interface BannersManagerProps {
@@ -10,6 +10,9 @@ interface BannersManagerProps {
   bannersRecords: Record[] | null;
   onGoBack: () => void;
 }
+
+// Допустимі значення ширини плитки категорії в сітці на головній (single-select «Ширина»).
+const CATEGORY_COLSPANS = ['1', '2', '3', '4'] as const;
 
 /** Прев'ю зображення банера. */
 function Preview({ url }: { url: string }): JSX.Element {
@@ -36,6 +39,7 @@ function Preview({ url }: { url: string }): JSX.Element {
 
 export default function BannersManager({ bannersTable, bannersRecords, onGoBack }: BannersManagerProps): JSX.Element {
   const [busy, setBusy] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const sliderRecords = useMemo(
     () =>
@@ -53,14 +57,17 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
     [bannersRecords]
   );
 
-  // Map categoryName → record for quick lookup
-  const categoryRecordMap = useMemo(() => {
-    const map = new Map<string, Record>();
-    (bannersRecords || [])
-      .filter((r) => r.getCellValueAsString(FIELDS.banner.type) === BANNER_TYPES.category)
-      .forEach((r) => map.set(r.getCellValueAsString(FIELDS.banner.name), r));
-    return map;
-  }, [bannersRecords]);
+  // Категорійні банери, відсортовані за «Порядок» — порядок плиток на головній.
+  const categoryRecords = useMemo(
+    () =>
+      (bannersRecords || [])
+        .filter((r) => r.getCellValueAsString(FIELDS.banner.type) === BANNER_TYPES.category)
+        .sort(
+          (a, b) =>
+            (Number(a.getCellValue(FIELDS.banner.order)) || 0) - (Number(b.getCellValue(FIELDS.banner.order)) || 0)
+        ),
+    [bannersRecords]
+  );
 
   if (!bannersTable) {
     return (
@@ -92,6 +99,22 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
       );
     }
     await field.updateOptionsAsync(updated);
+  };
+
+  // Створює колонку, якщо її ще немає (для «Посилання» / «Ширина» на категорійних банерах).
+  // Якщо бракує прав — кидаємо зрозумілу помилку, щоб клієнт додав колонку вручну.
+  const ensureField = async (name: string, type: FieldType, options?: unknown) => {
+    if (bannersTable.getFieldByNameIfExists(name)) return;
+    if (!bannersTable.hasPermissionToCreateField(name, type, options as never)) {
+      throw new Error(`Немає колонки «${name}» у таблиці «${TABLES.banners}», і бракує прав створити її. Додайте її вручну в Airtable.`);
+    }
+    await bannersTable.createFieldAsync(name, type, options as never);
+  };
+
+  // Гарантуємо наявність колонки «Ширина» — текстове поле (число рядком "1"–"4"),
+  // щоб уникнути формату single-select і працювати з колонкою, створеною вручну.
+  const ensureCategoryFields = async () => {
+    await ensureField(FIELDS.banner.colSpan, FieldType.SINGLE_LINE_TEXT);
   };
 
   const addSlide = async (file: File) => {
@@ -201,41 +224,88 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
 
   const catalogUrl = catalogRecord?.getCellValueAsString(FIELDS.banner.image) || '';
 
-  const setCategoryImage = async (categoryName: string, file: File) => {
-    if (!bannersTable) return;
+  const addCategory = async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
     setBusy(true);
     try {
-      const url = await mediaApi.uploadBanner(file);
-      const existing = categoryRecordMap.get(categoryName);
-      if (existing) {
-        const oldUrl = existing.getCellValueAsString(FIELDS.banner.image);
-        await bannersTable.updateRecordAsync(existing.id, { [FIELDS.banner.image]: url });
-        if (oldUrl && oldUrl !== url) await mediaApi.deleteBanner(oldUrl).catch(() => {});
-      } else {
-        await ensureBannerType(BANNER_TYPES.category);
-        await bannersTable.createRecordAsync({
-          [FIELDS.banner.name]: categoryName,
-          [FIELDS.banner.type]: { name: BANNER_TYPES.category },
-          [FIELDS.banner.image]: url,
-          [FIELDS.banner.active]: true,
-        });
-      }
+      await ensureBannerType(BANNER_TYPES.category);
+      await ensureCategoryFields();
+      const nextOrder = categoryRecords.length
+        ? Math.max(...categoryRecords.map((r) => Number(r.getCellValue(FIELDS.banner.order)) || 0)) + 1
+        : 1;
+      await bannersTable.createRecordAsync({
+        [FIELDS.banner.name]: trimmed,
+        [FIELDS.banner.type]: { name: BANNER_TYPES.category },
+        [FIELDS.banner.order]: nextOrder,
+        [FIELDS.banner.colSpan]: '1',
+        [FIELDS.banner.active]: true,
+      });
+      setNewCategoryName('');
     } catch (e) {
       console.error(e);
-      alert(e instanceof Error ? e.message : 'Не вдалося завантажити зображення.');
+      alert(e instanceof Error ? e.message : 'Не вдалося додати категорію.');
     } finally {
       setBusy(false);
     }
   };
 
-  const removeCategoryImage = async (categoryName: string) => {
-    const existing = categoryRecordMap.get(categoryName);
-    if (!existing || !bannersTable) return;
-    if (!window.confirm(`Видалити зображення категорії «${categoryName}»?`)) return;
+  const setCategoryColSpan = async (record: Record, colSpan: string) => {
     setBusy(true);
     try {
-      const url = existing.getCellValueAsString(FIELDS.banner.image);
-      await bannersTable.updateRecordAsync(existing.id, { [FIELDS.banner.image]: '' });
+      await ensureCategoryFields();
+      await bannersTable.updateRecordAsync(record.id, { [FIELDS.banner.colSpan]: colSpan });
+    } catch (e) {
+      console.error(e);
+      alert(e instanceof Error ? e.message : 'Не вдалося змінити ширину.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const moveCategory = async (index: number, direction: 'up' | 'down') => {
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= categoryRecords.length) return;
+    const a = categoryRecords[index];
+    const b = categoryRecords[target];
+    const aOrder = Number(a.getCellValue(FIELDS.banner.order)) || 0;
+    const bOrder = Number(b.getCellValue(FIELDS.banner.order)) || 0;
+    setBusy(true);
+    try {
+      await bannersTable.updateRecordsAsync([
+        { id: a.id, fields: { [FIELDS.banner.order]: bOrder } },
+        { id: b.id, fields: { [FIELDS.banner.order]: aOrder } },
+      ]);
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося змінити порядок.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteCategory = async (record: Record) => {
+    const name = record.getCellValueAsString(FIELDS.banner.name);
+    if (!window.confirm(`Видалити категорію «${name}» разом із фото?`)) return;
+    setBusy(true);
+    try {
+      const url = record.getCellValueAsString(FIELDS.banner.image);
+      await bannersTable.deleteRecordAsync(record.id);
+      if (url) await mediaApi.deleteBanner(url).catch(() => {});
+    } catch (e) {
+      console.error(e);
+      alert('Не вдалося видалити категорію.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeCategoryImage = async (record: Record) => {
+    if (!window.confirm('Видалити зображення категорії?')) return;
+    setBusy(true);
+    try {
+      const url = record.getCellValueAsString(FIELDS.banner.image);
+      await bannersTable.updateRecordAsync(record.id, { [FIELDS.banner.image]: '' });
       if (url) await mediaApi.deleteBanner(url).catch(() => {});
     } catch (e) {
       console.error(e);
@@ -335,14 +405,18 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
         </Section>
 
         {/* CATEGORIES */}
-        <Section title="Категорії — зображення блоку на головній">
+        <Section title={`Категорії — плитки на головній (${categoryRecords.length})`}>
+          <Text size="small" textColor="light" marginBottom={2}>
+            Назва має точно збігатися зі значенням поля «Каталог» у товарах — плитка веде на /catalog?type=Назва.
+          </Text>
           <Box display="flex" flexDirection="column" style={{ gap: 12 }}>
-            {CATEGORY_ITEMS.map((name) => {
-              const rec = categoryRecordMap.get(name);
-              const url = rec?.getCellValueAsString(FIELDS.banner.image) || '';
+            {categoryRecords.map((rec, idx, arr) => {
+              const name = rec.getCellValueAsString(FIELDS.banner.name);
+              const url = rec.getCellValueAsString(FIELDS.banner.image);
+              const colSpan = rec.getCellValueAsString(FIELDS.banner.colSpan) || '1';
               return (
                 <Box
-                  key={name}
+                  key={rec.id}
                   display="flex"
                   alignItems="center"
                   padding={2}
@@ -355,19 +429,57 @@ export default function BannersManager({ bannersTable, bannersRecords, onGoBack 
                       <Text size="small" textColor="light" marginBottom={1}>
                         {url ? 'Замінити фото:' : 'Завантажити фото:'}
                       </Text>
-                      <input type="file" accept="image/*" disabled={busy} onChange={onPick((f) => setCategoryImage(name, f))} />
+                      <input type="file" accept="image/*" disabled={busy} onChange={onPick((f) => replaceImage(rec, f))} />
                     </Box>
-                    {url && (
-                      <Box>
-                        <Button size="small" icon="trash" variant="danger" disabled={busy} onClick={() => removeCategoryImage(name)}>
-                          Видалити фото
+                    <Box>
+                      <Text size="small" textColor="light" marginBottom={1}>Ширина (1–4):</Text>
+                      <select
+                        value={colSpan}
+                        disabled={busy}
+                        onChange={(e) => setCategoryColSpan(rec, e.target.value)}
+                        style={{ padding: '6px 8px', border: `1px solid ${UI.border}`, borderRadius: 6 }}
+                      >
+                        {CATEGORY_COLSPANS.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </Box>
+                    <Box display="flex" style={{ gap: 4 }}>
+                      {url && (
+                        <Button size="small" icon="trash" variant="danger" disabled={busy} onClick={() => removeCategoryImage(rec)}>
+                          Прибрати фото
                         </Button>
-                      </Box>
-                    )}
+                      )}
+                      <Button size="small" icon="trash" variant="danger" disabled={busy} onClick={() => deleteCategory(rec)}>
+                        Видалити категорію
+                      </Button>
+                    </Box>
+                  </Box>
+                  <Box display="flex" flexDirection="column" flexShrink={0} style={{ gap: 4 }}>
+                    <Button size="small" icon="chevronUp" disabled={busy || idx === 0} onClick={() => moveCategory(idx, 'up')} />
+                    <Button size="small" icon="chevronDown" disabled={busy || idx === arr.length - 1} onClick={() => moveCategory(idx, 'down')} />
                   </Box>
                 </Box>
               );
             })}
+            {categoryRecords.length === 0 && <Text textColor="light">Категорій ще немає</Text>}
+          </Box>
+
+          <Box marginTop={3} display="flex" alignItems="flex-end" style={{ gap: 8 }}>
+            <Box flex="1">
+              <Text size="small" textColor="light" marginBottom={1}>Назва нової категорії:</Text>
+              <input
+                type="text"
+                value={newCategoryName}
+                placeholder="Напр. Стільці"
+                disabled={busy}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '6px 8px', border: `1px solid ${UI.border}`, borderRadius: 6 }}
+              />
+            </Box>
+            <Button icon="plus" disabled={busy || !newCategoryName.trim()} onClick={() => addCategory(newCategoryName)}>
+              Додати категорію
+            </Button>
           </Box>
         </Section>
 

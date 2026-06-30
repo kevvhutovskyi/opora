@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 import { FieldSet, Records } from "airtable";
 import { tableOptionFilters, tableOptions, tableProducts, tableProductSpecs, tableSpecs, tableVariants } from "../tables";
 import { fetchRecordsByIds, indexById, parseImageUrls } from "../helpers";
-import { CATEGORY_TABLES, FIELDS } from "../schema";
+import { FIELDS } from "../schema";
 import { ProductType } from "./types";
 import { VariationImage } from "../products";
 
@@ -93,8 +93,8 @@ async function fetchFilteredCatalog(
   // 1. Базова вибірка товарів за категорією (лише позначені «Показувати»)
   const visible = `{${FIELDS.product.visible}}=1`;
   const filterByFormula =
-    type && type !== "All"
-      ? `AND({${FIELDS.product.catalog}}='${CATEGORY_TABLES[type]}', ${visible})`
+    type && type !== "Всі"
+      ? `AND({${FIELDS.product.catalog}}='${type}', ${visible})`
       : visible;
   const productsData = await tableProducts.select({ filterByFormula }).all();
 
@@ -190,13 +190,6 @@ async function fetchFilteredCatalog(
   return catalog.map(({ createdAt, ...rest }) => rest);
 }
 
-// Стільці/Столи/Табуретки → Chair/Table/Nightstand (для зіставлення з activeType на storefront)
-const CATALOG_TO_TYPE: Record<string, ProductType> = Object.fromEntries(
-  Object.entries(CATEGORY_TABLES)
-    .filter(([type]) => type !== "All")
-    .map(([type, label]) => [label, type as ProductType])
-);
-
 async function fetchFilterOptions() {
   // Групи опцій-фільтрів налаштовуються в адмінці (таблиця «Фільтри Опцій»).
   // Кожен рядок = увімкнена група; «Категорії» — необов'язкове обмеження групи.
@@ -213,7 +206,7 @@ async function fetchFilterOptions() {
     // «Категорії» — текст через кому (напр. "Стільці, Столи"); порожньо = всі категорії.
     const cats = String(row.get(FIELDS.optionFilter.categories) || "")
       .split(",")
-      .map((label) => CATALOG_TO_TYPE[label.trim()])
+      .map((label) => label.trim())
       .filter(Boolean);
     groupCategories.set(groupName, cats);
   }
@@ -223,7 +216,7 @@ async function fetchFilterOptions() {
   const { variationsById, optionsById } = await loadVariationsAndOptions(productsData);
   const optionInfo = new Map<string, { hex: string; cats: Set<ProductType> }>();
   for (const product of productsData) {
-    const cat = CATALOG_TO_TYPE[String(product.get(FIELDS.product.catalog) || "").trim()];
+    const cat = String(product.get(FIELDS.product.catalog) || "").trim();
     if (!cat) continue;
     for (const vId of (product.get(FIELDS.product.variants) as string[]) || []) {
       const variant = variationsById.get(vId);

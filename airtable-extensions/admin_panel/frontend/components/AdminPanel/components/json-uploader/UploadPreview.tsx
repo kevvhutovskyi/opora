@@ -13,17 +13,13 @@ export function UploadPreview({ data, onUpload }: UploadPreviewProps): JSX.Eleme
     <Box marginBottom={3}>
       <Box padding={3} marginBottom={3} style={{ background: UI.successBg, borderRadius: 8 }}>
         <Text fontWeight="bold" marginBottom={2}>
-          Готово до завантаження — {data.models.length} товар(ів):
+          Готово до завантаження — {data.length} товар(ів):
         </Text>
-        {data.models.map((m) => (
-          <Text key={m.name} size="small">
-            • {m.name} — {m.variants?.length || 0} варіацій, {Object.keys(m.characteristics || {}).length} характеристик
+        {data.map((p, idx) => (
+          <Text key={`${p.name}-${idx}`} size="small">
+            • {p.name} — {p.variants?.length || 0} варіацій, {(p.characteristics || []).length} характеристик
           </Text>
         ))}
-        <Text size="small" marginTop={2}>
-          Палітра кольорів: {Object.keys(data.colors || {}).length} шт.
-          {!data.colors && ' (відсутня — назви кольорів буде взято з HEX)'}
-        </Text>
       </Box>
       <Button variant="primary" icon="upload" onClick={onUpload}>Завантажити в Airtable</Button>
     </Box>

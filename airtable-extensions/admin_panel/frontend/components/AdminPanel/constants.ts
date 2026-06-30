@@ -16,6 +16,7 @@ export const TABLES = {
 
 export const FIELDS = {
   product: {
+    name: 'Name',
     model: 'Модель',
     catalog: 'Каталог',
     description: 'Опис',
@@ -70,6 +71,9 @@ export const FIELDS = {
     image: 'Зображення',
     order: 'Порядок',
     active: 'Активний',
+    // Категорійні банери: ширина плитки в сітці на головній (1–4).
+    // Посилання НЕ зберігаємо — воно завжди /catalog?type=<Назва категорії>.
+    colSpan: 'Ширина',
   },
   comment: {
     product: 'Товар',

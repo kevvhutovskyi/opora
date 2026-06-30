@@ -1,4 +1,6 @@
-export type ProductType = 'Chair' | 'Table' | 'Nightstand' | 'All';
+// Категорія = українська назва з поля «Каталог» (напр. "Стільці", "Столи").
+// "Всі" — службове значення «без фільтра за категорією». Динамічна, тож просто string.
+export type ProductType = string;
 
 export type SortOption = 'default' | 'price_asc' | 'price_desc' | 'newest';
 

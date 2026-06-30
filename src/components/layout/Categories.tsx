@@ -3,59 +3,44 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRightIcon } from "../ui/Icons";
+import type { CategoryBanner } from "@/lib";
 
-const CATEGORIES = [
-  {
-    id: 1,
-    title: "Стільці",
-    mockImage: "https://picsum.photos/id/230/800/600",
-    link: "/catalog?type=Chair",
-    colSpan: "md:col-span-1",
-  },
-  {
-    id: 2,
-    title: "Столи",
-    mockImage: "https://picsum.photos/id/231/800/600",
-    link: "/catalog?type=Table",
-    colSpan: "md:col-span-1",
-  },
-  // {
-  //   id: 3,
-  //   title: "Табуретки",
-  //   mockImage: "https://picsum.photos/id/232/800/600",
-  //   link: "/catalog?type=Nightstand",
-  //   colSpan: "md:col-span-1",
-  // },
-];
-
-type CategoriesProps = {
-  // Map назваКатегорії → url із таблиці «Банери». Якщо немає — мок-зображення.
-  images?: Record<string, string>;
+// Класи мають бути літералами в коді, інакше Tailwind їх вирізає (purge).
+const SPAN: Record<number, string> = {
+  1: "md:col-span-1",
+  2: "md:col-span-2",
+  3: "md:col-span-3",
+  4: "md:col-span-4",
 };
 
-export default function Categories({ images = {} }: CategoriesProps) {
-  const categories = CATEGORIES.map((c) => ({
-    ...c,
-    image: images[c.title] || c.mockImage,
-  }));
+type CategoriesProps = {
+  // Плитки категорій із таблиці «Банери» (керуються в адмін-панелі).
+  categories?: CategoryBanner[];
+};
+
+export default function Categories({ categories = [] }: CategoriesProps) {
+  if (categories.length === 0) return null;
+
   return (
     <section className="w-full bg-opora-menu py-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-1 px-4 md:px-8">
-        {categories.map((category) => (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-1 px-4 md:px-8">
+        {categories.map((category, idx) => (
           <Link
-            key={category.id}
-            href={category.link}
-            className={`group relative w-full h-87.5 md:h-100 overflow-hidden bg-opora-beige block ${category.colSpan}`}
+            key={`${category.title}-${idx}`}
+            href={`/catalog?type=${encodeURIComponent(category.title)}`}
+            className={`group relative w-full h-87.5 md:h-100 overflow-hidden bg-opora-beige block ${SPAN[category.colSpan] || SPAN[1]}`}
           >
             {/* Background Image */}
-            <Image
-              src={category.image}
-              alt={category.title}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
-            />
-            
+            {category.image && (
+              <Image
+                src={category.image}
+                alt={category.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 25vw"
+                className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
+              />
+            )}
+
             {/* Gradient Overlay for text readability */}
             <div className="absolute inset-0 bg-linear-to-b from-black/30 via-transparent to-black/10" />
 

@@ -3,11 +3,12 @@
 import { useState, forwardRef, useImperativeHandle, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
+// Значення = українська назва категорії (поле «Каталог»). "Всі" = без фільтра.
 const ALL_CATEGORIES = [
-  { label: "Всі", value: "All" },
-  { label: "Крісла", value: "Chair" },
-  { label: "Столи", value: "Table" },
-  { label: "Табуретки", value: "Nightstand" },
+  { label: "Всі", value: "Всі" },
+  { label: "Стільці", value: "Стільці" },
+  { label: "Столи", value: "Столи" },
+  { label: "Табуретки", value: "Табуретки" },
 ];
 
 export interface FilterOption { label: string; hex?: string; categories: string[]; }
@@ -64,7 +65,7 @@ const FilterContent = forwardRef<FilterContentRef, FilterContentProps>(
   function FilterContent({ onClose, filters, categories, onApply, inline, hideApplyButton }, ref) {
     const searchParams = useSearchParams();
 
-    const [activeType, setActiveType] = useState(searchParams.get("type") || "All");
+    const [activeType, setActiveType] = useState(searchParams.get("type") || "Всі");
     const [optionSelections, setOptionSelections] = useState<Record<string, string[]>>(
       parsePrefixedFiltersFromUrl(searchParams, "optFilter_")
     );
@@ -100,7 +101,7 @@ const FilterContent = forwardRef<FilterContentRef, FilterContentProps>(
         if (key.startsWith("specFilter_") || key.startsWith("optFilter_")) keysToDelete.push(key);
       });
       keysToDelete.forEach((key) => params.delete(key));
-      if (activeType !== "All") {
+      if (activeType !== "Всі") {
         for (const [groupName, vals] of Object.entries(optionSelections)) {
           if (vals.length > 0) params.set("optFilter_" + groupName, vals.join(','));
         }
@@ -116,14 +117,14 @@ const FilterContent = forwardRef<FilterContentRef, FilterContentProps>(
     useImperativeHandle(ref, () => ({ applyFilters }));
 
     const availableCategories = ALL_CATEGORIES.filter(
-      (cat) => cat.value === "All" || categories.includes(cat.value)
+      (cat) => cat.value === "Всі" || categories.includes(cat.value)
     );
     const showCategoryFilter = categories.length > 1;
 
     // Опції-фільтри показуємо лише при обраній категорії (не на «Всі»),
     // а значення фільтруємо за категорією товарів, що їх використовують.
     const visibleOptionFilters =
-      activeType === "All"
+      activeType === "Всі"
         ? []
         : filters.optionFilters
             .filter((group) => group.categories.length === 0 || group.categories.includes(activeType))

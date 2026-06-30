@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { FieldSet, Record as AirtableRecord } from "airtable";
-import { GeneralProduct, ProductDetails } from "./types";
+import { ProductDetails } from "./types";
 import { airtableBase } from "..";
 import {
   tableProducts,
@@ -29,22 +29,6 @@ const getAdditionalProductsFields = (productType: ProductType, record: AirtableR
       return {};
   }
 };
-
-export async function getProducts(type: ProductType): Promise<GeneralProduct[]> {
-  const records = await airtableBase(CATEGORY_TABLES[type]).select().all();
-
-  return records.map((record) => ({
-    id: record.id,
-    description: String(record.get(FIELDS.product.description) || ""),
-    model: String(record.get(FIELDS.product.model) || ""),
-    inStock: Boolean(record.get(FIELDS.product.inStock) || false),
-    price: Number(record.get(FIELDS.product.price) || 0),
-    discountPercentage: Number(record.get(FIELDS.product.discountPercent) || 0) * 100,
-    discountPrice: Number(record.get(FIELDS.product.discountPrice) || 0),
-    discountedPrice: Number(record.get(FIELDS.product.discountedPrice) || 0),
-    ...getAdditionalProductsFields(type, record),
-  }) as GeneralProduct);
-}
 
 export async function getTopProducts(): Promise<ProductDetails[]> {
   const topRecords = await airtableBase(TABLES.topProducts).select().all();

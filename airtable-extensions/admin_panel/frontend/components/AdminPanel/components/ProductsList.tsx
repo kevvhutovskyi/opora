@@ -46,9 +46,7 @@ export default function ProductList({
     const q = search.trim().toLowerCase();
     if (!q) return productsRecords;
     return productsRecords.filter((p) =>
-      `${p.getCellValueAsString(FIELDS.product.model)} ${p.getCellValueAsString(FIELDS.product.manufacturer)}`
-        .toLowerCase()
-        .includes(q)
+      p.getCellValueAsString(FIELDS.product.model).toLowerCase().includes(q)
     );
   }, [productsRecords, search]);
 
@@ -76,7 +74,7 @@ export default function ProductList({
       {/* List */}
       <Card padding={3}>
         <Box marginBottom={3}>
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Пошук за моделлю або виробником…" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Пошук за моделлю…" />
         </Box>
 
         {filteredProducts && filteredProducts.length === 0 ? (

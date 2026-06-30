@@ -18,7 +18,7 @@ export default async function CatalogPage({
 }) {
   const params = await searchParams;
 
-  const type = (params.type as any) || "All";
+  const type = (params.type as any) || "Всі";
   const sort = (params.sort as any) || "default";
   
   const optionFilters: Record<string, string[]> = {};
@@ -32,7 +32,7 @@ export default async function CatalogPage({
     }
   }
 
-  const categories = ["Chair", "Table"];
+  const categories = ["Стільці", "Столи"];
 
   const [products, filterOptions, catalogHeroImage] = await Promise.all([
     getFilteredCatalog({ type, sort, optionFilters, specFilters }),

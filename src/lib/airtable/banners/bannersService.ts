@@ -24,26 +24,32 @@ export async function getSliderImages(): Promise<string[]> {
   }
 }
 
-/** Зображення категорій — повертає map { назваКатегорії: url }. */
-export async function getCategoryImages(): Promise<Record<string, string>> {
+export interface CategoryBanner {
+  title: string;
+  image: string;
+  colSpan: number; // 1–4, ширина плитки в сітці на головній
+}
+
+/** Категорійні плитки головної — активні записи типу «Категорія», відсортовані за «Порядок». */
+export async function getCategories(): Promise<CategoryBanner[]> {
   try {
     const records = await airtableBase(TABLES.banners)
       .select({
-        filterByFormula: `{${FIELDS.banner.type}} = '${BANNER_TYPES.category}'`,
+        filterByFormula: `AND({${FIELDS.banner.type}} = '${BANNER_TYPES.category}', {${FIELDS.banner.active}})`,
+        sort: [{ field: FIELDS.banner.order, direction: "asc" }],
       })
       .all();
 
-    return Object.fromEntries(
-      records
-        .map((record) => [
-          String(record.get(FIELDS.banner.name) || ""),
-          String(record.get(FIELDS.banner.image) || ""),
-        ])
-        .filter(([name, url]) => name && url)
-    );
+    return records
+      .map((record) => ({
+        title: String(record.get(FIELDS.banner.name) || ""),
+        image: String(record.get(FIELDS.banner.image) || ""),
+        colSpan: Math.min(4, Math.max(1, Number(record.get(FIELDS.banner.colSpan)) || 1)),
+      }))
+      .filter((c) => c.title);
   } catch (error) {
-    console.error("getCategoryImages error:", error);
-    return {};
+    console.error("getCategories error:", error);
+    return [];
   }
 }
 

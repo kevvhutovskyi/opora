@@ -25,7 +25,6 @@ export interface Product {
   id: string;
   model: string;
   name: string;
-  manufacturer: string;
   catalog: string;
   description: string;
   assemblyVideoUrl: string;

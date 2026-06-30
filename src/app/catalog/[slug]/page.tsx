@@ -24,7 +24,7 @@ export async function generateMetadata({
   const title = product.model || product.name;
   const description =
     (product.description || "").trim().slice(0, 160) ||
-    `${title} від ${SITE_NAME}. ${product.manufacturer || ""}`.trim();
+    `${title} від ${SITE_NAME}.`.trim();
   const image = product.variants?.[0]?.images?.[0] || DEFAULT_OG_IMAGE;
   const url = `/catalog/${slug}`;
 
@@ -65,7 +65,7 @@ export default async function ProductPage({
     description: product.description || undefined,
     image: product.variants?.flatMap((v) => v.images).filter(Boolean).slice(0, 6),
     sku: product.variants?.[0]?.sku || undefined,
-    brand: { "@type": "Brand", name: product.manufacturer || SITE_NAME },
+    brand: { "@type": "Brand", name: SITE_NAME },
     offers: {
       "@type": "Offer",
       price: product.minPrice || product.variants?.[0]?.price || 0,
